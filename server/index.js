@@ -95,9 +95,10 @@ function tick(room,dt){
 }
 let count=0;
 setInterval(()=>{
+ count++;
  for(const room of rooms.values()){
   tick(room,1/30);
-  if(++count%2===0){
+  if(count%2===0){
    const state={type:"state",code:room.code,players:room.players.map(p=>({id:p.id,team:p.team,x:p.x,y:p.y,vx:p.vx,vy:p.vy})),ball:room.ball,score:room.score,time:room.time,status:room.status};
    for(const p of room.players)safeSend(p.ws,state);
   }
