@@ -16,12 +16,20 @@ h1{font-size:17px;margin:0;letter-spacing:.4px}small{display:block;color:#9cb7bf
 #fieldWrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10px}
 #banner{position:absolute;left:50%;top:13%;transform:translateX(-50%);background:#081621dc;border:1px solid #ffffff30;border-radius:12px;padding:9px 16px;white-space:nowrap;text-align:center;font-weight:750;font-size:13px;pointer-events:none}
-#controls{height:132px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+#controls{height:132px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 10px;gap:8px}
 #pad{position:relative;width:115px;height:115px;border-radius:50%;background:#b4d6df19;border:2px solid #c2e4eb47;touch-action:none}
 #pad:after{content:"";position:absolute;inset:33px;border-radius:50%;border:1px dashed #ffffff42}
 #stick{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid #d2f2f3;background:#b9e5e55e;border-radius:50%;box-shadow:0 2px 12px #0005;pointer-events:none}
-#kick{height:92px;width:92px;border-radius:50%;background:linear-gradient(150deg,#ffc861,#fa7741);color:#311503;font-size:19px;font-weight:950;border:3px solid #ffe5a3;box-shadow:0 6px 0 #95381b;touch-action:none}
-#kick:active{transform:translateY(4px);box-shadow:0 2px 0 #95381b}
+#actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.action{border:2px solid #fff9;color:#fff;font-weight:900;touch-action:none;cursor:pointer;display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.08;user-select:none;-webkit-user-select:none}
+#hold{height:73px;width:74px;border-radius:18px;background:#397dba;font-size:11px;box-shadow:0 4px 0 #16436e}
+#hold.active{background:#20c994;border-color:#c4ffe8;box-shadow:0 2px 0 #07774f;transform:translateY(2px)}
+#kickStack{display:flex;flex-direction:column;align-items:center;gap:8px}
+#kick{height:75px;width:75px;border-radius:50%;background:#e88740;font-size:15px;position:relative;box-shadow:0 4px 0 #96431b;overflow:hidden}
+#kick:before{content:"";position:absolute;inset:0;background:conic-gradient(#fff398 calc(var(--charge,0)*1%),transparent 0);opacity:.45;pointer-events:none}
+#kick span{position:relative;z-index:1;text-shadow:0 1px 2px #663400}
+#pass{height:34px;width:83px;border-radius:11px;background:#2eb58d;box-shadow:0 3px 0 #0e614c;font-size:13px}
+.action:active{filter:brightness(1.15)}
 #menu{position:absolute;inset:0;display:grid;place-items:center;background:#06111bd9;z-index:3;padding:14px}
 .panel{width:min(390px,95vw);padding:19px;background:#132c38;border:1px solid #5a889355;border-radius:17px;box-shadow:0 15px 55px #0009;text-align:center}
 .panel h2{margin:0 0 5px;font-size:27px}.panel p{font-size:13px;color:#aac4c8;line-height:1.5;margin:8px 0 15px}
@@ -32,7 +40,8 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10p
 #toast{min-height:16px;color:#ffcf95;font-size:12px;padding-top:6px}
 #exit{border:1px solid #ffffff3e;background:#113442;color:white;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800}
 #roomBadge{background:#183f4b;padding:5px 9px;border-radius:7px;color:#d1f6df;font-size:12px;display:none}
-@media(max-height:540px){header{height:28px}h1{font-size:13px}small{display:none}#controls{height:86px}#pad{width:77px;height:77px}#pad:after{inset:22px}#stick{width:32px;height:32px;margin:-16px 0 0 -16px}#kick{height:70px;width:70px;font-size:15px}}
+@media(max-height:540px){header{height:28px}h1{font-size:13px}small{display:none}#controls{height:91px}#pad{width:78px;height:78px}#pad:after{inset:22px}#stick{width:32px;height:32px;margin:-16px 0 0 -16px}#actions{gap:6px}#hold{height:58px;width:60px;font-size:10px}#kick{width:58px;height:58px;font-size:12px}#pass{width:66px;height:28px;font-size:11px}#kickStack{gap:4px}}
+@media(max-width:355px){#controls{padding:0}#pad{width:96px;height:96px}#actions{gap:5px}#hold{width:58px;height:61px;font-size:10px}#kick{width:65px;height:65px;font-size:12px}#pass{width:70px}}
 @media(min-width:850px){#controls{max-width:800px;width:100%;margin:auto}}
 </style>
 </head>
@@ -40,7 +49,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10p
 <div id="app">
 <header><div><h1>⚽ GameFootball</h1><small>Футбол сверху • быстрые матчи</small></div><div id="roomBadge"></div><div><span id="score">0 : 0</span> <span id="clock">03:00</span></div><button id="exit" hidden>МЕНЮ</button></header>
 <div id="fieldWrap"><canvas id="field" width="960" height="540" aria-label="Футбольное поле"></canvas><div id="banner">Выбери режим</div></div>
-<div id="controls"><div id="pad"><div id="stick"></div></div><button id="kick" aria-label="Ударить по мячу">УДАР</button></div>
+<div id="controls"><div id="pad"><div id="stick"></div></div><div id="actions"><button id="hold" class="action" aria-label="Удержание мяча">ДЕРЖАТЬ МЯЧ</button><div id="kickStack"><button id="kick" class="action" aria-label="Удар, удерживай для усиления"><span>УДАР</span></button><button id="pass" class="action" aria-label="Точный пас">ПАС</button></div></div></div>
 <div id="menu"><section class="panel"><h2>GAMEFOOTBALL</h2><p>Аркадный футбол в духе быстрых онлайн-матчей. Играй с другом или потренируйся против бота.</p><button id="practice">⚽ ТРЕНИРОВКА С БОТОМ</button><button id="create">🌐 СОЗДАТЬ ОНЛАЙН-КОМНАТУ</button><label for="code">Код комнаты друга</label><input id="code" maxlength="6" placeholder="Например: 4HK82J" autocapitalize="characters"><button id="join" class="secondary">ПОДКЛЮЧИТЬСЯ ПО КОДУ</button><label for="server">Адрес игрового сервера (нужен для онлайна)</label><input id="server" placeholder="wss://адрес-вашего-сервера" spellcheck="false" autocomplete="off"><div id="toast"></div></section></div>
 </div>
 <script>
