@@ -57,13 +57,13 @@ function move(p,dt){
  p.x=Math.max(L+PR,Math.min(R-PR,p.x+d.x*SPEED*dt));
  p.y=Math.max(T+PR,Math.min(BOTTOM-PR,p.y+d.y*SPEED*dt));
  p.vx=d.x;p.vy=d.y;
- if(Math.hypot(d.x,d.y)>.15){p.faceX=d.x;p.faceY=d.y}
+ if(Math.hypot(d.x,d.y)>.15){const l=Math.hypot(d.x,d.y);p.faceX=d.x/l;p.faceY=d.y/l}
  p.cd=Math.max(0,p.cd-dt);p.noControl=Math.max(0,p.noControl-dt);
 }
 function inRange(p,b){return Math.hypot(b.x-p.x,b.y-p.y)<=PR+BR+23}
 function shoot(room,p,kind,charge=0){
  const b=room.ball;if(p.cd>0||!inRange(p,b))return false;
- let aim=norm(p.input.x,p.input.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};
+ let aim=norm(p.input.x,p.input.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};const unit=Math.hypot(aim.x,aim.y)||1;aim={x:aim.x/unit,y:aim.y/unit};
  const spread=kind==="pass"?.01:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle),speed=kind==="pass"?395:540+510*charge;
  b.vx=(aim.x*c-aim.y*s)*speed;b.vy=(aim.x*s+aim.y*c)*speed;
  b.x=p.x+aim.x*(PR+BR+3);b.y=p.y+aim.y*(PR+BR+3);
