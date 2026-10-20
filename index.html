@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#091825">
+<title>GameFootball — 2D футбол</title>
+<style>
+:root{font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#f4fff9;background:#081621}
+*{box-sizing:border-box}body{margin:0;overflow:hidden;touch-action:none}
+#app{height:100dvh;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 10px env(safe-area-inset-bottom);gap:7px;background:radial-gradient(circle at 50% 10%,#183748 0%,#081621 78%)}
+header{height:45px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;gap:10px}
+h1{font-size:17px;margin:0;letter-spacing:.4px}small{display:block;color:#9cb7bf;font-size:11px;font-weight:500}
+#score{font-weight:900;font-size:23px;white-space:nowrap;font-variant-numeric:tabular-nums}
+#clock{font-size:14px;color:#d1e4e3;font-weight:700}
+#fieldWrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10px}
+#banner{position:absolute;left:50%;top:13%;transform:translateX(-50%);background:#081621dc;border:1px solid #ffffff30;border-radius:12px;padding:9px 16px;white-space:nowrap;text-align:center;font-weight:750;font-size:13px;pointer-events:none}
+#controls{height:132px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 22px}
+#pad{position:relative;width:115px;height:115px;border-radius:50%;background:#b4d6df19;border:2px solid #c2e4eb47;touch-action:none}
+#pad:after{content:"";position:absolute;inset:33px;border-radius:50%;border:1px dashed #ffffff42}
+#stick{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border:2px solid #d2f2f3;background:#b9e5e55e;border-radius:50%;box-shadow:0 2px 12px #0005;pointer-events:none}
+#kick{height:92px;width:92px;border-radius:50%;background:linear-gradient(150deg,#ffc861,#fa7741);color:#311503;font-size:19px;font-weight:950;border:3px solid #ffe5a3;box-shadow:0 6px 0 #95381b;touch-action:none}
+#kick:active{transform:translateY(4px);box-shadow:0 2px 0 #95381b}
+#menu{position:absolute;inset:0;display:grid;place-items:center;background:#06111bd9;z-index:3;padding:14px}
+.panel{width:min(390px,95vw);padding:19px;background:#132c38;border:1px solid #5a889355;border-radius:17px;box-shadow:0 15px 55px #0009;text-align:center}
+.panel h2{margin:0 0 5px;font-size:27px}.panel p{font-size:13px;color:#aac4c8;line-height:1.5;margin:8px 0 15px}
+.panel button{background:#2de29a;color:#042719;border:0;border-radius:10px;min-height:42px;padding:9px 12px;font-weight:850;cursor:pointer;width:100%;margin:4px 0}
+.panel button.secondary{background:#265264;color:#e7faf8}
+.panel input{width:100%;min-height:40px;background:#0a1d29;border:1px solid #4b7a85;color:white;border-radius:9px;padding:10px;outline:none}
+.panel label{display:block;text-align:left;margin:12px 0 5px;font-size:12px;color:#c6dce0}
+#toast{min-height:16px;color:#ffcf95;font-size:12px;padding-top:6px}
+#exit{border:1px solid #ffffff3e;background:#113442;color:white;border-radius:8px;padding:7px 10px;font-size:12px;font-weight:800}
+#roomBadge{background:#183f4b;padding:5px 9px;border-radius:7px;color:#d1f6df;font-size:12px;display:none}
+@media(max-height:540px){header{height:28px}h1{font-size:13px}small{display:none}#controls{height:86px}#pad{width:77px;height:77px}#pad:after{inset:22px}#stick{width:32px;height:32px;margin:-16px 0 0 -16px}#kick{height:70px;width:70px;font-size:15px}}
+@media(min-width:850px){#controls{max-width:800px;width:100%;margin:auto}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div><h1>⚽ GameFootball</h1><small>Футбол сверху • быстрые матчи</small></div><div id="roomBadge"></div><div><span id="score">0 : 0</span> <span id="clock">03:00</span></div><button id="exit" hidden>МЕНЮ</button></header>
+<div id="fieldWrap"><canvas id="field" width="960" height="540" aria-label="Футбольное поле"></canvas><div id="banner">Выбери режим</div></div>
+<div id="controls"><div id="pad"><div id="stick"></div></div><button id="kick" aria-label="Ударить по мячу">УДАР</button></div>
+<div id="menu"><section class="panel"><h2>GAMEFOOTBALL</h2><p>Аркадный футбол в духе быстрых онлайн-матчей. Играй с другом или потренируйся против бота.</p><button id="practice">⚽ ТРЕНИРОВКА С БОТОМ</button><button id="create">🌐 СОЗДАТЬ ОНЛАЙН-КОМНАТУ</button><label for="code">Код комнаты друга</label><input id="code" maxlength="6" placeholder="Например: 4HK82J" autocapitalize="characters"><button id="join" class="secondary">ПОДКЛЮЧИТЬСЯ ПО КОДУ</button><label for="server">Адрес игрового сервера (нужен для онлайна)</label><input id="server" placeholder="wss://адрес-вашего-сервера" spellcheck="false" autocomplete="off"><div id="toast"></div></section></div>
+</div>
+<script>
+"use strict";
+const W=960,H=540,P=20,B=11,GOAL=92;
+const $=id=>document.getElementById(id);
+const canvas=$("field"),ctx=canvas.getContext("2d");
+const keys=new Set();let direction={x:0,y:0},joy={x:0,y:0},kickHeld=false,mode="menu",socket=null,myId=null,myTeam=0,serverState=null,lastFrame=performance.now(),kickCooldown=0;
+let world={players:[],ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"waiting"};
+$("server").value=localStorage.getItem("gf-server")||"";
+$("server").addEventListener("change",()=>localStorage.setItem("gf-server",$("server").value.trim()));
+function banner(s){$("banner").textContent=s;$("banner").hidden=!s}
+function toast(s){$("toast").textContent=s}
+function showMenu(){if(socket){socket.close();socket=null}mode="menu";$("menu").hidden=false;$("exit").hidden=true;$("roomBadge").style.display="none";banner("Выбери режим")}
+$("exit").onclick=showMenu;
+function player(id,team,x,y){return{id,team,x,y,vx:0,vy:0,cd:0}}
+function resetWorld(){world={players:[player("me",0,205,H/2),player("bot",1,W-205,H/2)],ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"playing"}}
+function startPractice(){resetWorld();myId="me";myTeam=0;mode="practice";$("menu").hidden=true;$("exit").hidden=false;banner("Тренировка • WASD / джойстик")}
+$("practice").onclick=startPractice;
+function normalized(x,y){let l=Math.hypot(x,y);return l>1?{x:x/l,y:y/l}:{x,y}}
+function input(){let x=joy.x,y=joy.y;if(keys.has("a")||keys.has("arrowleft"))x-=1;if(keys.has("d")||keys.has("arrowright"))x+=1;if(keys.has("w")||keys.has("arrowup"))y-=1;if(keys.has("s")||keys.has("arrowdown"))y+=1;return normalized(x,y)}
+window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if([" ","arrowup","arrowdown","arrowleft","arrowright"].includes(k))e.preventDefault();keys.add(k);if(k===" ")kickHeld=true});
+window.addEventListener("keyup",e=>{const k=e.key.toLowerCase();keys.delete(k);if(k===" ")kickHeld=false});
+window.addEventListener("blur",()=>{keys.clear();joy={x:0,y:0};kickHeld=false});
+const pad=$("pad"),stick=$("stick");let touchId=null;
+function movePad(e){const r=pad.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,rad=r.width*.35;let dx=e.clientX-cx,dy=e.clientY-cy,m=Math.hypot(dx,dy);if(m>rad){dx*=rad/m;dy*=rad/m}joy=normalized(dx/rad,dy/rad);stick.style.transform=`translate(${dx}px,${dy}px)`}
+pad.onpointerdown=e=>{e.preventDefault();if(touchId!==null)return;touchId=e.pointerId;pad.setPointerCapture(touchId);movePad(e)};
+pad.onpointermove=e=>{if(touchId===e.pointerId)movePad(e)};
+function clearPad(e){if(touchId!==e.pointerId)return;touchId=null;joy={x:0,y:0};stick.style.transform=""}
+pad.onpointerup=clearPad;pad.onpointercancel=clearPad;
+const kickButton=$("kick");kickButton.onpointerdown=e=>{e.preventDefault();kickHeld=true;kickButton.setPointerCapture(e.pointerId)};
+kickButton.onpointerup=()=>kickHeld=false;kickButton.onpointercancel=()=>kickHeld=false;
+function movePlayer(p,d,dt){const n=normalized(d.x,d.y),speed=257;p.x=Math.max(P,Math.min(W-P,p.x+n.x*speed*dt));p.y=Math.max(P,Math.min(H-P,p.y+n.y*speed*dt));p.vx=n.x;p.vy=n.y}
+function attemptKick(p,d){if(p.cd>0)return;let b=world.ball,dx=b.x-p.x,dy=b.y-p.y,dist=Math.hypot(dx,dy);if(dist>P+B+21)return;let aim=normalized(d.x,d.y);if(Math.hypot(aim.x,aim.y)<.15)aim=normalized(dx/(dist||1),dy/(dist||1));const len=Math.hypot(aim.x,aim.y)||1;b.vx=aim.x/len*790;b.vy=aim.y/len*790;p.cd=.35}
+function simulate(dt){
+ if(world.status!=="playing")return;
+ world.time=Math.max(0,world.time-dt);if(world.time===0){world.status="finished";banner("Матч окончен • открой меню");return}
+ const a=world.players[0],bot=world.players[1],d=input();movePlayer(a,d,dt);
+ const v=world.ball;const dx=v.x-bot.x,dy=v.y-bot.y;let bd=normalized(dx/85,dy/85);movePlayer(bot,bd,dt);
+ a.cd=Math.max(0,a.cd-dt);bot.cd=Math.max(0,bot.cd-dt);
+ if(kickHeld)attemptKick(a,d);if(Math.hypot(dx,dy)<P+B+20)attemptKick(bot,{x:-1,y:(H/2-bot.y)/250});
+ for(const p of world.players){let dx=v.x-p.x,dy=v.y-p.y,dist=Math.hypot(dx,dy)||.01,lim=P+B;if(dist<lim){let nx=dx/dist,ny=dy/dist;v.x=p.x+nx*lim;v.y=p.y+ny*lim;v.vx+=nx*155;v.vy+=ny*155}}
+ v.x+=v.vx*dt;v.y+=v.vy*dt;const drag=Math.exp(-1.9*dt);v.vx*=drag;v.vy*=drag;
+ if(v.y<B){v.y=B;v.vy=Math.abs(v.vy)*.75}if(v.y>H-B){v.y=H-B;v.vy=-Math.abs(v.vy)*.75}
+ if(v.x< -B&&Math.abs(v.y-H/2)<GOAL){world.score[1]++;goalReset()}
+ else if(v.x>W+B&&Math.abs(v.y-H/2)<GOAL){world.score[0]++;goalReset()}
+ else{if(v.x<B&&Math.abs(v.y-H/2)>=GOAL){v.x=B;v.vx=Math.abs(v.vx)*.75}if(v.x>W-B&&Math.abs(v.y-H/2)>=GOAL){v.x=W-B;v.vx=-Math.abs(v.vx)*.75}}
+}
+function goalReset(){world.ball={x:W/2,y:H/2,vx:0,vy:0};world.players[0].x=205;world.players[0].y=H/2;world.players[1].x=W-205;world.players[1].y=H/2;banner("ГОООЛ!");setTimeout(()=>{if(mode==="practice")banner("")},950)}
+function connect(action){
+ const entered=$("server").value.trim();let url=entered;
+ if(!url&&!location.hostname.endsWith("github.io"))url=(location.protocol==="https:"?"wss://":"ws://")+location.host;
+ if(!/^wss?:\/\//i.test(url)){toast("Для онлайна нужен адрес запущенного сервера (wss://...).");return}
+ localStorage.setItem("gf-server",entered);
+ if(socket)socket.close();
+ try{socket=new WebSocket(url)}catch(e){toast("Неверный адрес сервера");return}
+ toast("Подключаемся...");
+ socket.onopen=()=>socket.send(JSON.stringify(action));
+ socket.onmessage=e=>{
+  let msg;try{msg=JSON.parse(e.data)}catch{return}
+  if(msg.type==="welcome"){mode="online";myId=msg.id;myTeam=msg.team;world={players:[],ball:{x:W/2,y:H/2},score:[0,0],time:180,status:"waiting"};$("menu").hidden=true;$("exit").hidden=false;$("roomBadge").textContent="КОМНАТА "+msg.code;$("roomBadge").style.display="block";banner("Ждём второго игрока • код "+msg.code)}
+  if(msg.type==="state"){serverState=msg;world=msg;$("roomBadge").textContent="КОМНАТА "+msg.code;banner(msg.status==="waiting"?"Ждём второго игрока • код "+msg.code:msg.status==="finished"?"Матч окончен":"")}
+  if(msg.type==="error")toast(msg.message||"Ошибка подключения");
+ };
+ socket.onerror=()=>toast("Ошибка сети. Проверь сервер и адрес.");
+ socket.onclose=()=>{if(mode==="online"){banner("Связь с сервером потеряна");$("roomBadge").textContent="НЕТ СОЕДИНЕНИЯ"}};
+}
+$("create").onclick=()=>connect({type:"create"});
+$("join").onclick=()=>{const code=$("code").value.trim().toUpperCase();if(!/^[A-Z0-9]{6}$/.test(code)){toast("Введи код из 6 символов");return}connect({type:"join",code})};
+function drawField(){
+ ctx.fillStyle="#165f43";ctx.fillRect(0,0,W,H);
+ for(let i=0;i<12;i++){ctx.fillStyle=i%2?"#ffffff08":"#00000008";ctx.fillRect(i*80,0,80,H)}
+ ctx.strokeStyle="#d1ffdeaa";ctx.lineWidth=3;ctx.strokeRect(4,4,W-8,H-8);
+ ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.arc(W/2,H/2,85,0,Math.PI*2);ctx.stroke();
+ ctx.strokeRect(4,H/2-150,140,300);ctx.strokeRect(W-144,H/2-150,140,300);
+ ctx.strokeRect(4,H/2-85,48,170);ctx.strokeRect(W-52,H/2-85,48,170);
+ ctx.fillStyle="#ecffff20";ctx.fillRect(-16,H/2-GOAL,21,GOAL*2);ctx.fillRect(W-5,H/2-GOAL,21,GOAL*2);
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(W/2,H/2,4,0,Math.PI*2);ctx.fill();
+}
+function draw(){
+ ctx.clearRect(0,0,W,H);drawField();
+ const ps=world.players||[];for(const p of ps){
+  const mine=p.id===myId;
+  ctx.save();ctx.shadowColor=p.team===0?"#61dcff":"#ff796c";ctx.shadowBlur=mine?19:6;
+  ctx.beginPath();ctx.arc(p.x,p.y,P,0,Math.PI*2);ctx.fillStyle=p.team===0?"#268deb":"#eb554d";ctx.fill();
+  ctx.lineWidth=4;ctx.strokeStyle=mine?"#fff":"#ffffff90";ctx.stroke();ctx.restore();
+  ctx.fillStyle="white";ctx.textAlign="center";ctx.font="bold 12px system-ui";ctx.fillText(mine?"ТЫ":p.team===0?"СИНИЙ":"КРАСНЫЙ",p.x,p.y-30);
+  ctx.strokeStyle="#ffffffb0";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+(p.vx||0)*12,p.y+(p.vy||0)*12);ctx.stroke();
+ }
+ const ball=world.ball||{x:W/2,y:H/2};
+ ctx.save();ctx.shadowColor="#fff";ctx.shadowBlur=14;ctx.fillStyle="#fff";ctx.strokeStyle="#26364a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(ball.x,ball.y,B,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+ const s=world.score||[0,0];$("score").textContent=s[0]+" : "+s[1];const t=Math.max(0,Math.ceil(world.time||0));$("clock").textContent=String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
+}
+let netSend=0;
+function frame(now){let dt=Math.min(.04,(now-lastFrame)/1000);lastFrame=now;
+ if(mode==="practice")simulate(dt);
+ if(mode==="online"&&socket?.readyState===WebSocket.OPEN){netSend+=dt;if(netSend>=1/20){netSend=0;socket.send(JSON.stringify({type:"input",...input(),kick:kickHeld}))}}
+ draw();requestAnimationFrame(frame)}
+draw();requestAnimationFrame(frame);
+</script>
+</body></html>
