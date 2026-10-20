@@ -92,11 +92,11 @@ $("pass").onpointerdown=e=>{e.preventDefault();doPass()};
 holdButton.onpointerdown=e=>{e.preventDefault();holdButton.setPointerCapture(e.pointerId);controlHeld=true;holdButton.classList.add("active")};
 function releaseHold(){controlHeld=false;holdButton.classList.remove("active")}
 holdButton.onpointerup=releaseHold;holdButton.onpointercancel=releaseHold;
-function movePlayer(p,d,dt,speed=SPEED){const n=normalized(d.x,d.y);p.x=Math.max(L+P,Math.min(R-P,p.x+n.x*speed*dt));p.y=Math.max(T+P,Math.min(BOTTOM-P,p.y+n.y*speed*dt));p.vx=n.x;p.vy=n.y;if(Math.hypot(n.x,n.y)>.15){p.faceX=n.x;p.faceY=n.y}p.cd=Math.max(0,p.cd-dt);p.noControl=Math.max(0,p.noControl-dt)}
+function movePlayer(p,d,dt,speed=SPEED){const n=normalized(d.x,d.y);p.x=Math.max(L+P,Math.min(R-P,p.x+n.x*speed*dt));p.y=Math.max(T+P,Math.min(BOTTOM-P,p.y+n.y*speed*dt));p.vx=n.x;p.vy=n.y;if(Math.hypot(n.x,n.y)>.15){const l=Math.hypot(n.x,n.y);p.faceX=n.x/l;p.faceY=n.y/l}p.cd=Math.max(0,p.cd-dt);p.noControl=Math.max(0,p.noControl-dt)}
 function inRange(p,b){return Math.hypot(b.x-p.x,b.y-p.y)<=P+B+23}
 function shoot(p,d,kind,charge=0){
  const b=world.ball;if(p.cd>0||!inRange(p,b))return false;
- let aim=normalized(d.x,d.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};
+ let aim=normalized(d.x,d.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};const unit=Math.hypot(aim.x,aim.y)||1;aim={x:aim.x/unit,y:aim.y/unit};
  const spread=kind==="pass"?.01:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle);
  const speed=kind==="pass"?395:540+510*charge;
  b.vx=(aim.x*c-aim.y*s)*speed;b.vy=(aim.x*s+aim.y*c)*speed;
