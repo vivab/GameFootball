@@ -1,0 +1,12 @@
+{
+  "name": "gamefootball",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "2D arcade football with authoritative WebSocket multiplayer",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "engines": {"node": ">=20"},
+  "dependencies": {"ws": "^8.18.3"}
+}
