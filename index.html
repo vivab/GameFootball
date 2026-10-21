@@ -136,8 +136,8 @@ function physics(dt,heldBy){
  if(b.x<L+B&&!mouth){b.x=L+B;b.vx=Math.abs(b.vx)*.7}
  if(b.x>R-B&&!mouth){b.x=R-B;b.vx=-Math.abs(b.vx)*.7}
  if(mouth){
-  if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+B){b.x=L-DEPTH+B;b.vx=Math.abs(b.vx)*.3}}
-  if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-B){b.x=R+DEPTH-B;b.vx=-Math.abs(b.vx)*.3}}
+  if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+B){b.x=L-DEPTH+B;b.vx=0}}
+  if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-B){b.x=R+DEPTH-B;b.vx=0}}
  }
  const speed=Math.hypot(b.vx,b.vy);if(speed>1120){b.vx*=1120/speed;b.vy*=1120/speed}
 }
