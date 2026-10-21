@@ -60,16 +60,18 @@ const $=id=>document.getElementById(id);
 const canvas=$("field"),ctx=canvas.getContext("2d");
 const keys=new Set();let joy={x:0,y:0},controlHeld=false,charging=false,chargeStart=0,shotSeq=0,passSeq=0,shotCharge=0,localShotSeq=0,localPassSeq=0,mode="menu",socket=null,myId=null,lastFrame=performance.now();
 let world={players:[],ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"waiting"};
+// Rendering uses an interpolated copy during network games. Physics stays authoritative on the server.
+let visualWorld=world;
 $("server").value=localStorage.getItem("gf-server")||"";
 $("server").addEventListener("change",()=>localStorage.setItem("gf-server",$("server").value.trim()));
 function banner(s){$("banner").textContent=s;$("banner").hidden=!s}
 function toast(s){$("toast").textContent=s}
 function stopActions(){passing=false;charging=false;controlHeld=false;joy={x:0,y:0};$("hold").classList.remove("active")}
-function showMenu(){if(socket){socket.close();socket=null}stopActions();mode="menu";$("menu").hidden=false;$("exit").hidden=true;$("roomBadge").style.display="none";banner("Выбери режим")}
+function showMenu(){if(socket){socket.close();socket=null}stopActions();visualWorld=world;mode="menu";$("menu").hidden=false;$("exit").hidden=true;$("roomBadge").style.display="none";banner("Выбери режим")}
 $("exit").onclick=showMenu;
 function player(id,team,x,y){return{id,team,x,y,vx:0,vy:0,faceX:team===0?1:-1,faceY:0,cd:0,noControl:0}}
 function resetWorld(){const players=[];for(let team=0;team<2;team++)for(let slot=0;slot<5;slot++){const p=player(team===0&&slot===2?"me":"bot"+team+"-"+slot,team,team===0?L+110+slot*90:R-110-slot*90,H/2+(slot-2)*125);p.bot=p.id!=="me";p.slot=slot;players.push(p)}world={players,ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"playing",tactics:0,aiClock:0};resetMatch(world)}
-function startPractice(){resetWorld();camera.ready=false;stopActions();localShotSeq=shotSeq;localPassSeq=passSeq;myId="me";mode="practice";$("menu").hidden=true;$("exit").hidden=false;banner("")}
+function startPractice(){resetWorld();visualWorld=world;camera.ready=false;stopActions();localShotSeq=shotSeq;localPassSeq=passSeq;myId="me";mode="practice";$("menu").hidden=true;$("exit").hidden=false;banner("")}
 $("practice").onclick=startPractice;
 function normalized(x,y){let l=Math.hypot(x,y);return l>1?{x:x/l,y:y/l}:{x,y}}
 function input(){let x=joy.x,y=joy.y;if(keys.has("a")||keys.has("arrowleft"))x-=1;if(keys.has("d")||keys.has("arrowright"))x+=1;if(keys.has("w")||keys.has("arrowup"))y-=1;if(keys.has("s")||keys.has("arrowdown"))y+=1;return normalized(x,y)}
@@ -127,7 +129,7 @@ function connect(action){
  socket.onopen=()=>socket.send(JSON.stringify(action));
  socket.onmessage=e=>{
   let msg;try{msg=JSON.parse(e.data)}catch{return}
-  if(msg.type==="welcome"){mode="online";myId=msg.id;camera.ready=false;stopActions();world={players:[],ball:{x:W/2,y:H/2},score:[0,0],time:180,status:"waiting"};$("menu").hidden=true;$("exit").hidden=false;$("roomBadge").textContent="КОМНАТА "+msg.code;$("roomBadge").style.display="block";banner("Ждём второго игрока • код "+msg.code)}
+  if(msg.type==="welcome"){mode="online";myId=msg.id;camera.ready=false;visualWorld=null;stopActions();world={players:[],ball:{x:W/2,y:H/2},score:[0,0],time:180,status:"waiting"};$("menu").hidden=true;$("exit").hidden=false;$("roomBadge").textContent="КОМНАТА "+msg.code;$("roomBadge").style.display="block";banner("Ждём второго игрока • код "+msg.code)}
   if(msg.type==="state"){world=msg;$("roomBadge").textContent="КОМНАТА "+msg.code;banner(msg.status==="waiting"?"Ждём второго игрока • код "+msg.code:msg.status==="finished"?"Матч окончен":"")}
   if(msg.type==="error")toast(msg.message||"Ошибка подключения");
  };
@@ -164,6 +166,27 @@ function drawField(){
  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(W/2,H/2,4,0,Math.PI*2);ctx.fill();
 }
 
+function updateVisual(dt){
+ if(mode!=="online"){visualWorld=world;return}
+ const goal=world.goalNumber||0;
+ const needReset=!visualWorld||visualWorld.goalNumber!==goal||
+  visualWorld.players?.length!==world.players?.length;
+ if(needReset){
+  visualWorld={players:(world.players||[]).map(p=>({...p})),ball:{...(world.ball||{x:W/2,y:H/2})},goalNumber:goal};
+  return;
+ }
+ const pa=1-Math.exp(-Math.max(0,dt)*15),ba=1-Math.exp(-Math.max(0,dt)*20);
+ for(let i=0;i<world.players.length;i++){
+  const from=visualWorld.players[i],to=world.players[i];
+  if(from.id!==to.id){visualWorld.players=world.players.map(p=>({...p}));break}
+  from.x+=(to.x-from.x)*pa;
+  from.y+=(to.y-from.y)*pa;
+  from.vx=to.vx;from.vy=to.vy;
+ }
+ const b=world.ball||{x:W/2,y:H/2};
+ visualWorld.ball.x+=(b.x-visualWorld.ball.x)*ba;
+ visualWorld.ball.y+=(b.y-visualWorld.ball.y)*ba;
+}
 const camera={x:W/2,y:H/2,ready:false},view={width:0,height:0,dpr:1,zoom:1};
 function resizeCanvas(){
  const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
@@ -174,7 +197,7 @@ function resizeCanvas(){
  view.zoom=Math.max(rect.width/980,rect.height/600,.35);
 }
 function updateCamera(dt){
- const me=(world.players||[]).find(p=>p.id===myId);
+ const me=(visualWorld?.players||[]).find(p=>p.id===myId);
  if(!me)return;
  if(!camera.ready){camera.x=me.x;camera.y=me.y;camera.ready=true;return}
  const k=1-Math.exp(-Math.max(0,Math.min(dt,.06))*13);
@@ -182,7 +205,7 @@ function updateCamera(dt){
  camera.y+=(me.y-camera.y)*k;
 }
 function ballDirectionOverlay(){
- const me=(world.players||[]).find(p=>p.id===myId),b=world.ball;
+ const me=(visualWorld?.players||[]).find(p=>p.id===myId),b=visualWorld?.ball;
  if(!me||!b||!view.width||!view.height)return;
  const w=view.width,h=view.height,z=view.zoom;
  const sx=w/2+(b.x-camera.x)*z,sy=h/2+(b.y-camera.y)*z;
@@ -214,7 +237,7 @@ function draw(){
  ctx.clearRect(0,0,canvas.width,canvas.height);
  ctx.setTransform(dpr*zoom,0,0,dpr*zoom,dpr*(w/2-camera.x*zoom),dpr*(height/2-camera.y*zoom));
  drawField();
- const ps=world.players||[];for(const p of ps){
+ const ps=visualWorld?.players||[];for(const p of ps){
   const mine=p.id===myId;
   ctx.save();ctx.shadowColor=p.team===0?"#61dcff":"#ff796c";ctx.shadowBlur=mine?19:6;
   ctx.beginPath();ctx.arc(p.x,p.y,P,0,Math.PI*2);ctx.fillStyle=p.team===0?"#268deb":"#eb554d";ctx.fill();
@@ -222,7 +245,7 @@ function draw(){
   ctx.fillStyle="white";ctx.textAlign="center";ctx.font="bold 12px system-ui";ctx.fillText(mine?"ТЫ":p.team===0?"СИНИЙ":"КРАСНЫЙ",p.x,p.y-30);
   ctx.strokeStyle="#ffffffb0";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+(p.vx||0)*12,p.y+(p.vy||0)*12);ctx.stroke();
  }
- const ball=world.ball||{x:W/2,y:H/2};
+ const ball=visualWorld?.ball||{x:W/2,y:H/2};
  ctx.save();ctx.shadowColor="#fff";ctx.shadowBlur=14;ctx.fillStyle="#fff";ctx.strokeStyle="#26364a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(ball.x,ball.y,B,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
  ctx.setTransform(dpr,0,0,dpr,0,0);
  ballDirectionOverlay();
@@ -232,6 +255,7 @@ function draw(){
 let netSend=0;
 function frame(now){let dt=Math.min(.04,(now-lastFrame)/1000);lastFrame=now;
  if(mode==="practice")simulate(dt);
+ updateVisual(dt);
  updateCamera(dt);
  if(mode==="online"&&socket?.readyState===WebSocket.OPEN){netSend+=dt;if(netSend>=1/20){netSend=0;socket.send(JSON.stringify({type:"input",...input(),control:holding(),shotSeq,passSeq,shotCharge,passCharge}))}}
  draw();requestAnimationFrame(frame)}
