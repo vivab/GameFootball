@@ -13,8 +13,8 @@ header{height:45px;flex-shrink:0;display:flex;align-items:center;justify-content
 h1{font-size:17px;margin:0;letter-spacing:.4px}small{display:block;color:#9cb7bf;font-size:11px;font-weight:500}
 #score{font-weight:900;font-size:23px;white-space:nowrap;font-variant-numeric:tabular-nums}
 #clock{font-size:14px;color:#d1e4e3;font-weight:700}
-#fieldWrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10px}
+#fieldWrap{position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+canvas{display:block;width:100%;height:100%;object-fit:fill;border-radius:10px}
 #banner{position:absolute;left:50%;top:13%;transform:translateX(-50%);background:#081621dc;border:1px solid #ffffff30;border-radius:12px;padding:9px 16px;white-space:nowrap;text-align:center;font-weight:750;font-size:13px;pointer-events:none}
 #controls{height:132px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 10px;gap:8px}
 #pad{position:relative;width:115px;height:115px;border-radius:50%;background:#b4d6df19;border:2px solid #c2e4eb47;touch-action:none}
@@ -54,7 +54,7 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10p
 </div>
 <script>
 "use strict";
-const W=1600,H=900,P=20,B=11,GOAL=115,L=68,R=1532,T=30,BOTTOM=870,DEPTH=52,SPEED=185,CHARGE_MS=1150;
+const W=1600,H=900,P=20,B=11,GOAL=142,L=68,R=1532,T=30,BOTTOM=870,DEPTH=52,SPEED=185,CHARGE_MS=1150;
 const $=id=>document.getElementById(id);
 const canvas=$("field"),ctx=canvas.getContext("2d");
 const keys=new Set();let joy={x:0,y:0},controlHeld=false,charging=false,chargeStart=0,shotSeq=0,passSeq=0,shotCharge=0,localShotSeq=0,localPassSeq=0,mode="menu",socket=null,myId=null,lastFrame=performance.now();
@@ -68,7 +68,7 @@ function showMenu(){if(socket){socket.close();socket=null}stopActions();mode="me
 $("exit").onclick=showMenu;
 function player(id,team,x,y){return{id,team,x,y,vx:0,vy:0,faceX:team===0?1:-1,faceY:0,cd:0,noControl:0}}
 function resetWorld(){const players=[];for(let team=0;team<2;team++)for(let slot=0;slot<5;slot++){const p=player(team===0&&slot===2?"me":"bot"+team+"-"+slot,team,team===0?L+110+slot*90:R-110-slot*90,H/2+(slot-2)*125);p.bot=p.id!=="me";p.slot=slot;players.push(p)}world={players,ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"playing",tactics:0,aiClock:0}}
-function startPractice(){resetWorld();stopActions();localShotSeq=shotSeq;localPassSeq=passSeq;myId="me";mode="practice";$("menu").hidden=true;$("exit").hidden=false;banner("")}
+function startPractice(){resetWorld();camera.ready=false;stopActions();localShotSeq=shotSeq;localPassSeq=passSeq;myId="me";mode="practice";$("menu").hidden=true;$("exit").hidden=false;banner("")}
 $("practice").onclick=startPractice;
 function normalized(x,y){let l=Math.hypot(x,y);return l>1?{x:x/l,y:y/l}:{x,y}}
 function input(){let x=joy.x,y=joy.y;if(keys.has("a")||keys.has("arrowleft"))x-=1;if(keys.has("d")||keys.has("arrowright"))x+=1;if(keys.has("w")||keys.has("arrowup"))y-=1;if(keys.has("s")||keys.has("arrowdown"))y+=1;return normalized(x,y)}
@@ -100,7 +100,7 @@ function shoot(p,d,kind,charge=0){
  const b=world.ball;if(p.cd>0||!inRange(p,b)||p.retouch>0)return false;
  let aim=normalized(d.x,d.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};const unit=Math.hypot(aim.x,aim.y)||1;aim={x:aim.x/unit,y:aim.y/unit};
  const spread=kind==="pass"?.01+.018*charge:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle);
- const speed=kind==="pass"?395+Math.min(1,charge)*115:540+510*charge;
+ const speed=kind==="pass"?520+Math.min(1,charge)*180:1050+Math.min(1,charge)*1000;
  b.vx=(aim.x*c-aim.y*s)*speed;b.vy=(aim.x*s+aim.y*c)*speed;
  b.x=p.x+aim.x*(P+B+3);b.y=p.y+aim.y*(P+B+3);
  p.cd=kind==="pass"?.3:.4;p.noControl=.5;p.retouch=.65;b.lastTouch=p.id;b.touchLock=.8;return true;
@@ -113,10 +113,10 @@ function controlBall(p){
 }
 function separate(a,b){const dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy)||.001;if(d<P*2){let push=(P*2-d)/2,nx=dx/d,ny=dy/d;a.x-=nx*push;a.y-=ny*push;b.x+=nx*push;b.y+=ny*push}}
 function physics(dt,heldBy){
- const b=world.ball,players=world.players,radius=P+B;b.touchLock=Math.max(0,(b.touchLock||0)-dt);
+ const b=world.ball,players=world.players,radius=P+B;b.prevX=b.x;b.prevY=b.y;b.touchLock=Math.max(0,(b.touchLock||0)-dt);
  if(!heldBy){
   b.x+=b.vx*dt;b.y+=b.vy*dt;
-  const friction=Math.exp(-1.75*dt);b.vx*=friction;b.vy*=friction;
+  const friction=Math.exp(-.75*dt);b.vx*=friction;b.vy*=friction;
   for(const p of players){
    const dx=b.x-p.x,dy=b.y-p.y,dist=Math.hypot(dx,dy);
    if(dist<radius){
@@ -139,12 +139,19 @@ function physics(dt,heldBy){
   if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+B){b.x=L-DEPTH+B;b.vx=0}}
   if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-B){b.x=R+DEPTH-B;b.vx=0}}
  }
- const speed=Math.hypot(b.vx,b.vy);if(speed>1120){b.vx*=1120/speed;b.vy*=1120/speed}
+ const speed=Math.hypot(b.vx,b.vy);if(speed>2150){b.vx*=2150/speed;b.vy*=2150/speed}
 }
-function scored(){const b=world.ball;if(b.y>H/2-GOAL+B&&b.y<H/2+GOAL-B){
- if(b.x<=L-DEPTH+B){world.score[1]++;return true}
- if(b.x>=R+DEPTH-B){world.score[0]++;return true}
- }return false}
+function scored(){
+ const b=world.ball;
+ // A goal is scored as soon as the ball crosses the line through the open mouth.
+ // Do not require it to reach the back of the net: the net is only a visual.
+ const inMouth=Math.abs(b.y-H/2)<GOAL-B-5;
+ if(!inMouth)return false;
+ const oldX=Number.isFinite(b.prevX)?b.prevX:b.x;
+ if(oldX<=R&&b.x>R){world.score[0]++;return true}
+ if(oldX>=L&&b.x<L){world.score[1]++;return true}
+ return false;
+}
 function aiStep(game,dt,humanTeam=0){
  game.aiClock=(game.aiClock||0)+dt;
  if(game.aiClock>4.5){game.aiClock=0;game.tactics=(game.tactics+1)%4}
@@ -203,7 +210,7 @@ function connect(action){
  socket.onopen=()=>socket.send(JSON.stringify(action));
  socket.onmessage=e=>{
   let msg;try{msg=JSON.parse(e.data)}catch{return}
-  if(msg.type==="welcome"){mode="online";myId=msg.id;stopActions();world={players:[],ball:{x:W/2,y:H/2},score:[0,0],time:180,status:"waiting"};$("menu").hidden=true;$("exit").hidden=false;$("roomBadge").textContent="КОМНАТА "+msg.code;$("roomBadge").style.display="block";banner("Ждём второго игрока • код "+msg.code)}
+  if(msg.type==="welcome"){mode="online";myId=msg.id;camera.ready=false;stopActions();world={players:[],ball:{x:W/2,y:H/2},score:[0,0],time:180,status:"waiting"};$("menu").hidden=true;$("exit").hidden=false;$("roomBadge").textContent="КОМНАТА "+msg.code;$("roomBadge").style.display="block";banner("Ждём второго игрока • код "+msg.code)}
   if(msg.type==="state"){world=msg;$("roomBadge").textContent="КОМНАТА "+msg.code;banner(msg.status==="waiting"?"Ждём второго игрока • код "+msg.code:msg.status==="finished"?"Матч окончен":"")}
   if(msg.type==="error")toast(msg.message||"Ошибка подключения");
  };
@@ -230,12 +237,66 @@ function drawField(){
  paintGoal("left");paintGoal("right");
  ctx.strokeStyle="#ceffe1c4";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(R,T);ctx.lineTo(R,H/2-GOAL);ctx.moveTo(R,H/2+GOAL);ctx.lineTo(R,BOTTOM);ctx.lineTo(L,BOTTOM);ctx.lineTo(L,H/2+GOAL);ctx.moveTo(L,H/2-GOAL);ctx.lineTo(L,T);ctx.stroke();
  ctx.beginPath();ctx.moveTo(W/2,T);ctx.lineTo(W/2,BOTTOM);ctx.arc(W/2,H/2,120,0,Math.PI*2);ctx.stroke();
- ctx.strokeRect(L,H/2-210,180,420);ctx.strokeRect(R-180,H/2-210,180,420);
- ctx.strokeRect(L,H/2-130,65,260);ctx.strokeRect(R-65,H/2-130,65,260);
+ // The goal-side edges of the penalty areas stay OPEN, not white walls.
+ ctx.beginPath();
+ ctx.moveTo(L,H/2-210);ctx.lineTo(L+180,H/2-210);ctx.lineTo(L+180,H/2+210);ctx.lineTo(L,H/2+210);
+ ctx.moveTo(R,H/2-210);ctx.lineTo(R-180,H/2-210);ctx.lineTo(R-180,H/2+210);ctx.lineTo(R,H/2+210);
+ ctx.moveTo(L,H/2-130);ctx.lineTo(L+65,H/2-130);ctx.lineTo(L+65,H/2+130);ctx.lineTo(L,H/2+130);
+ ctx.moveTo(R,H/2-130);ctx.lineTo(R-65,H/2-130);ctx.lineTo(R-65,H/2+130);ctx.lineTo(R,H/2+130);
+ ctx.stroke();
  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(W/2,H/2,4,0,Math.PI*2);ctx.fill();
 }
+
+const camera={x:W/2,y:H/2,ready:false},view={width:0,height:0,dpr:1,zoom:1};
+function resizeCanvas(){
+ const rect=canvas.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
+ const width=Math.max(1,Math.round(rect.width*dpr)),height=Math.max(1,Math.round(rect.height*dpr));
+ if(canvas.width!==width||canvas.height!==height){canvas.width=width;canvas.height=height}
+ view.width=rect.width;view.height=rect.height;view.dpr=dpr;
+ // Fixed close-range scale, not the full pitch. The user sees nearby play.
+ view.zoom=Math.max(rect.width/980,rect.height/600,.35);
+}
+function updateCamera(dt){
+ const me=(world.players||[]).find(p=>p.id===myId);
+ if(!me)return;
+ if(!camera.ready){camera.x=me.x;camera.y=me.y;camera.ready=true;return}
+ const k=1-Math.exp(-Math.max(0,Math.min(dt,.06))*13);
+ camera.x+=(me.x-camera.x)*k;
+ camera.y+=(me.y-camera.y)*k;
+}
+function ballDirectionOverlay(){
+ const me=(world.players||[]).find(p=>p.id===myId),b=world.ball;
+ if(!me||!b||!view.width||!view.height)return;
+ const w=view.width,h=view.height,z=view.zoom;
+ const sx=w/2+(b.x-camera.x)*z,sy=h/2+(b.y-camera.y)*z;
+ const edge=34;
+ if(sx>=edge&&sx<=w-edge&&sy>=edge&&sy<=h-edge)return;
+ const dx=sx-w/2,dy=sy-h/2;
+ if(Math.hypot(dx,dy)<.01)return;
+ const fraction=Math.min((w/2-edge)/Math.max(.001,Math.abs(dx)),(h/2-edge)/Math.max(.001,Math.abs(dy)),1);
+ const ix=w/2+dx*fraction,iy=h/2+dy*fraction;
+ ctx.save();
+ ctx.translate(ix,iy);
+ ctx.fillStyle="rgba(5,29,41,.92)";ctx.strokeStyle="#fff7";ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(0,0,22,0,Math.PI*2);ctx.fill();ctx.stroke();
+ ctx.font="19px system-ui";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText("⚽",0,1);
+ ctx.rotate(Math.atan2(dy,dx));
+ ctx.fillStyle="#ffe17e";ctx.beginPath();ctx.moveTo(33,0);ctx.lineTo(24,-7);ctx.lineTo(24,7);ctx.closePath();ctx.fill();
+ ctx.restore();
+ // Distance is in approximate game-world units, never real-world metres.
+ const dist=Math.round(Math.hypot(b.x-me.x,b.y-me.y));
+ ctx.save();ctx.fillStyle="#fff";ctx.font="bold 11px system-ui";ctx.textAlign="center";
+ ctx.fillText(String(dist),ix,Math.max(12,iy-27));ctx.restore();
+}
+window.addEventListener("resize",resizeCanvas);
 function draw(){
- ctx.clearRect(0,0,W,H);drawField();
+ resizeCanvas();
+ const {width:w,height:height,dpr,zoom}=view;
+ if(!w||!height)return;
+ ctx.setTransform(1,0,0,1,0,0);
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ ctx.setTransform(dpr*zoom,0,0,dpr*zoom,dpr*(w/2-camera.x*zoom),dpr*(height/2-camera.y*zoom));
+ drawField();
  const ps=world.players||[];for(const p of ps){
   const mine=p.id===myId;
   ctx.save();ctx.shadowColor=p.team===0?"#61dcff":"#ff796c";ctx.shadowBlur=mine?19:6;
@@ -246,12 +307,15 @@ function draw(){
  }
  const ball=world.ball||{x:W/2,y:H/2};
  ctx.save();ctx.shadowColor="#fff";ctx.shadowBlur=14;ctx.fillStyle="#fff";ctx.strokeStyle="#26364a";ctx.lineWidth=3;ctx.beginPath();ctx.arc(ball.x,ball.y,B,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.restore();
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ballDirectionOverlay();
  kickButton.style.setProperty("--charge",charging?Math.min(100,(performance.now()-chargeStart)/CHARGE_MS*100):0);
  const s=world.score||[0,0];$("score").textContent=s[0]+" : "+s[1];const t=Math.max(0,Math.ceil(world.time||0));$("clock").textContent=String(Math.floor(t/60)).padStart(2,"0")+":"+String(t%60).padStart(2,"0");
 }
 let netSend=0;
 function frame(now){let dt=Math.min(.04,(now-lastFrame)/1000);lastFrame=now;
  if(mode==="practice")simulate(dt);
+ updateCamera(dt);
  if(mode==="online"&&socket?.readyState===WebSocket.OPEN){netSend+=dt;if(netSend>=1/20){netSend=0;socket.send(JSON.stringify({type:"input",...input(),control:holding(),shotSeq,passSeq,shotCharge,passCharge}))}}
  draw();requestAnimationFrame(frame)}
 draw();requestAnimationFrame(frame);
