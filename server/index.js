@@ -17,8 +17,8 @@ const server=http.createServer(async(req,res)=>{
 });
 const wss=new WebSocketServer({server,maxPayload:1024});
 const safeSend=(ws,data)=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))};
-function player(id,team){return{id,team,x:team===0?205:W-205,y:H/2,vx:0,vy:0,faceX:team===0?1:-1,faceY:0,cd:0,noControl:0,lastShotSeq:0,lastPassSeq:0,pendingShot:null,pendingPass:false,input:{x:0,y:0,control:false}}}
-function resetPositions(room){room.ball={x:W/2,y:H/2,vx:0,vy:0};for(const p of room.players){p.x=p.team===0?L+310:R-310;p.y=H/2;p.vx=0;p.vy=0;p.faceX=p.team===0?1:-1;p.faceY=0;p.cd=0;p.noControl=.5;p.pendingShot=null;p.pendingPass=false;p.input={x:0,y:0,control:false}}}
+function player(id,team){return{id,team,x:team===0?205:W-205,y:H/2,vx:0,vy:0,faceX:team===0?1:-1,faceY:0,cd:0,noControl:0,lastShotSeq:0,lastPassSeq:0,pendingShot:null,pendingPass:null,input:{x:0,y:0,control:false}}}
+function resetPositions(room){room.ball={x:W/2,y:H/2,vx:0,vy:0};for(const p of room.players){p.x=p.team===0?L+310:R-310;p.y=H/2;p.vx=0;p.vy=0;p.faceX=p.team===0?1:-1;p.faceY=0;p.cd=0;p.noControl=.5;p.pendingShot=null;p.pendingPass=null;p.input={x:0,y:0,control:false}}}
 function newRoom(code){return{code,players:[],ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:TIME,status:"waiting",restart:false}}
 function code(){let s;do{s=randomBytes(5).toString("hex").slice(0,6).toUpperCase()}while(rooms.has(s));return s}
 function joinRoom(ws,room){
@@ -39,7 +39,7 @@ wss.on("connection",ws=>{
    const p=ws.player,clamp=n=>Number.isFinite(n)?Math.max(-1,Math.min(1,n)):0;
    p.input={x:clamp(data.x),y:clamp(data.y),control:data.control===true};
    if(Number.isSafeInteger(data.shotSeq)&&data.shotSeq>p.lastShotSeq){p.lastShotSeq=data.shotSeq;p.pendingShot=Math.max(0,Math.min(1,Number(data.shotCharge)||0))}
-   if(Number.isSafeInteger(data.passSeq)&&data.passSeq>p.lastPassSeq){p.lastPassSeq=data.passSeq;p.pendingPass=true}
+   if(Number.isSafeInteger(data.passSeq)&&data.passSeq>p.lastPassSeq){p.lastPassSeq=data.passSeq;p.pendingPass=Math.max(0,Math.min(1,Number(data.passCharge)||0))}
   }
  });
  ws.on("close",()=>{
@@ -58,40 +58,51 @@ function move(p,dt){
  p.y=Math.max(T+PR,Math.min(BOTTOM-PR,p.y+d.y*SPEED*dt));
  p.vx=d.x;p.vy=d.y;
  if(Math.hypot(d.x,d.y)>.15){const l=Math.hypot(d.x,d.y);p.faceX=d.x/l;p.faceY=d.y/l}
- p.cd=Math.max(0,p.cd-dt);p.noControl=Math.max(0,p.noControl-dt);
+ p.cd=Math.max(0,p.cd-dt);p.noControl=Math.max(0,p.noControl-dt);p.retouch=Math.max(0,(p.retouch||0)-dt);
 }
 function inRange(p,b){return Math.hypot(b.x-p.x,b.y-p.y)<=PR+BR+23}
 function shoot(room,p,kind,charge=0){
- const b=room.ball;if(p.cd>0||!inRange(p,b))return false;
+ const b=room.ball;if(p.cd>0||!inRange(p,b)||p.retouch>0)return false;
  let aim=norm(p.input.x,p.input.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};const unit=Math.hypot(aim.x,aim.y)||1;aim={x:aim.x/unit,y:aim.y/unit};
- const spread=kind==="pass"?.01:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle),speed=kind==="pass"?395:540+510*charge;
+ const spread=kind==="pass"?.01+.018*charge:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle),speed=kind==="pass"?395:540+510*charge;
  b.vx=(aim.x*c-aim.y*s)*speed;b.vy=(aim.x*s+aim.y*c)*speed;
  b.x=p.x+aim.x*(PR+BR+3);b.y=p.y+aim.y*(PR+BR+3);
- p.cd=kind==="pass"?.19:.34;p.noControl=.35;return true;
+ p.cd=kind==="pass"?.3:.4;p.noControl=.5;p.retouch=.65;b.lastTouch=p.id;b.touchLock=.8;return true;
 }
 function controlBall(room,p){
- if(p.noControl>0||!inRange(p,room.ball))return false;
+ if(p.noControl>0||p.retouch>0||Math.hypot(room.ball.x-p.x,room.ball.y-p.y)>PR+BR+14||!inRange(p,room.ball))return false;
  const b=room.ball,fx=p.faceX,fy=p.faceY;
- b.x+=(p.x+fx*(PR+BR+5)-b.x)*.65;b.y+=(p.y+fy*(PR+BR+5)-b.y)*.65;
+ b.x+=(p.x+fx*(PR+BR+4)-b.x)*.18;b.y+=(p.y+fy*(PR+BR+4)-b.y)*.18;
  b.vx=p.vx*SPEED*.75;b.vy=p.vy*SPEED*.75;return true;
 }
 function physics(room,dt,heldBy){
- const b=room.ball;
+ const b=room.ball,players=room.players,radius=PR+BR;b.touchLock=Math.max(0,(b.touchLock||0)-dt);
  if(!heldBy){
-  for(const p of room.players){const dx=b.x-p.x,dy=b.y-p.y,dist=Math.hypot(dx,dy)||.001,lim=PR+BR;
-   if(dist<lim){const nx=dx/dist,ny=dy/dist;b.x=p.x+nx*lim;b.y=p.y+ny*lim;b.vx+=nx*130;b.vy+=ny*130}
-  }
   b.x+=b.vx*dt;b.y+=b.vy*dt;
-  const drag=Math.exp(-1.35*dt);b.vx*=drag;b.vy*=drag;
+  const friction=Math.exp(-1.75*dt);b.vx*=friction;b.vy*=friction;
+  for(const p of players){
+   const dx=b.x-p.x,dy=b.y-p.y,dist=Math.hypot(dx,dy);
+   if(dist<radius){
+    const nx=dist>.001?dx/dist:(p.team===0?1:-1),ny=dist>.001?dy/dist:0;
+    b.x=p.x+nx*(radius+.2);b.y=p.y+ny*(radius+.2);
+    const rel=(b.vx-p.vx*SPEED)*nx+(b.vy-p.vy*SPEED)*ny;
+    if(rel<0){b.vx-=1.18*rel*nx;b.vy-=1.18*rel*ny}
+   }
+  }
  }
- const mouth=b.y>H/2-GOAL+BR&&b.y<H/2+GOAL-BR;
- if((b.x<L||b.x>R)&&mouth)b.y=Math.max(H/2-GOAL+BR,Math.min(H/2+GOAL-BR,b.y));
- else{
-  if(b.y<T+BR){b.y=T+BR;b.vy=Math.abs(b.vy)*.65}
-  if(b.y>BOTTOM-BR){b.y=BOTTOM-BR;b.vy=-Math.abs(b.vy)*.65}
-  if(b.x<L+BR){b.x=L+BR;b.vx=Math.abs(b.vx)*.65}
-  if(b.x>R-BR){b.x=R-BR;b.vx=-Math.abs(b.vx)*.65}
+ const top=H/2-GOAL+BR,bottom=H/2+GOAL-BR;
+ const mouth=b.y>top&&b.y<bottom;
+ if(!mouth||b.x>=L&&b.x<=R){
+  if(b.y<T+BR){b.y=T+BR;b.vy=Math.abs(b.vy)*.7}
+  if(b.y>BOTTOM-BR){b.y=BOTTOM-BR;b.vy=-Math.abs(b.vy)*.7}
  }
+ if(b.x<L+BR&&!mouth){b.x=L+BR;b.vx=Math.abs(b.vx)*.7}
+ if(b.x>R-BR&&!mouth){b.x=R-BR;b.vx=-Math.abs(b.vx)*.7}
+ if(mouth){
+  if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+BR){b.x=L-DEPTH+BR;b.vx=Math.abs(b.vx)*.3}}
+  if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-BR){b.x=R+DEPTH-BR;b.vx=-Math.abs(b.vx)*.3}}
+ }
+ const speed=Math.hypot(b.vx,b.vy);if(speed>1120){b.vx*=1120/speed;b.vy*=1120/speed}
 }
 function scored(room){
  const b=room.ball;
@@ -115,7 +126,7 @@ function botInputs(room,dt){
  room.aiClock=(room.aiClock||0)+dt;
  if(room.aiClock>5){room.aiClock=0;room.tactic=((room.tactic||0)+1)%4}
  for(const p of room.players){
-  if(!p.bot)continue;
+  if(!p.bot)continue;p.aiDecision=Math.max(0,(p.aiDecision||0)-dt);
   const ball=room.ball,team=room.players.filter(q=>q.team===p.team),enemy=room.players.filter(q=>q.team!==p.team);
   const closest=team.reduce((a,b)=>Math.hypot(b.x-ball.x,b.y-ball.y)<Math.hypot(a.x-ball.x,a.y-ball.y)?b:a,team[0]);
   const dir=p.team===0?1:-1,near=Math.hypot(p.x-ball.x,p.y-ball.y)<PR+BR+52;
@@ -123,16 +134,16 @@ function botInputs(room,dt){
   const spread=[1,1.35,.7,1.1][room.tactic||0];
   let x,y;
   if(p.slot===0){x=p.team===0?L+60:R-60;y=H/2+(ball.y-H/2)*.3}
-  else if(p===closest){x=ball.x;y=ball.y}
+  else if(p===closest){x=Math.max(L+PR+45,Math.min(R-PR-45,ball.x));y=Math.max(T+PR+45,Math.min(BOTTOM-PR-45,ball.y))}
   else{x=(p.team===0?L+220:R-220)+dir*(p.slot-1)*75*spread;y=H/2+(p.slot-2)*110*spread+(ball.y-H/2)*.3}
   if(press&&near)y+=p.y<H/2?55:-55;
-  const d=norm((x-p.x)/90,(y-p.y)/90);p.input={x:d.x,y:d.y,control:near};
-  if(near&&p.cd<=0){
+  x=Math.max(L+PR+45,Math.min(R-PR-45,x));y=Math.max(T+PR+45,Math.min(BOTTOM-PR-45,y));const d=norm((x-p.x)/90,(y-p.y)/90);p.input={x:d.x,y:d.y,control:p===closest&&near&&p.retouch<=0};
+  if(near&&p.cd<=0&&p.aiDecision<=0&&!(ball.lastTouch===p.id&&ball.touchLock>0)){p.aiDecision=1.4+Math.random()*.6;
    const goalDist=Math.abs((p.team===0?R:L)-p.x);
    const receiver=team.filter(q=>q!==p).sort((a,b)=>dir*(b.x-a.x))[0];
    if(goalDist<260){p.pendingShot=.4}
-   else if(press&&receiver){p.input.x=receiver.x-p.x;p.input.y=receiver.y-p.y;p.pendingPass=true}
-   else if(Math.random()<dt*.5&&receiver){p.input.x=receiver.x-p.x;p.input.y=receiver.y-p.y;p.pendingPass=true}
+   else if(press&&receiver){p.input.x=receiver.x-p.x;p.input.y=receiver.y-p.y;p.pendingPass=0}
+   else if(Math.random()<dt*.5&&receiver){p.input.x=receiver.x-p.x;p.input.y=receiver.y-p.y;p.pendingPass=0}
   }
  }
 }
@@ -152,7 +163,7 @@ function tick(room,dt){
  }
  for(const p of room.players){
   if(p.pendingShot!==null){shoot(room,p,"shot",p.pendingShot);p.pendingShot=null}
-  if(p.pendingPass){shoot(room,p,"pass");p.pendingPass=false}
+  if(p.pendingPass!==null){shoot(room,p,"pass",p.pendingPass);p.pendingPass=null}
  }
  const controllers=room.players.filter(p=>p.input.control&&p.noControl<=0&&inRange(p,room.ball))
   .sort((a,b)=>Math.hypot(room.ball.x-a.x,room.ball.y-a.y)-Math.hypot(room.ball.x-b.x,room.ball.y-b.y));
