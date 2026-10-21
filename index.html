@@ -48,13 +48,13 @@ canvas{display:block;width:100%;height:100%;object-fit:contain;border-radius:10p
 <body>
 <div id="app">
 <header><div><h1>⚽ GameFootball</h1><small>Футбол сверху • быстрые матчи</small></div><div id="roomBadge"></div><div><span id="score">0 : 0</span> <span id="clock">03:00</span></div><button id="exit" hidden>МЕНЮ</button></header>
-<div id="fieldWrap"><canvas id="field" width="960" height="540" aria-label="Футбольное поле"></canvas><div id="banner">Выбери режим</div></div>
+<div id="fieldWrap"><canvas id="field" width="1600" height="900" aria-label="Футбольное поле"></canvas><div id="banner">Выбери режим</div></div>
 <div id="controls"><div id="pad"><div id="stick"></div></div><div id="actions"><button id="hold" class="action" aria-label="Удержание мяча">ДЕРЖАТЬ МЯЧ</button><div id="kickStack"><button id="kick" class="action" aria-label="Удар, удерживай для усиления"><span>УДАР</span></button><button id="pass" class="action" aria-label="Точный пас">ПАС</button></div></div></div>
 <div id="menu"><section class="panel"><h2>GAMEFOOTBALL</h2><p>Аркадный футбол в духе быстрых онлайн-матчей. Играй с другом или потренируйся против бота.</p><button id="practice">⚽ ТРЕНИРОВКА С БОТОМ</button><button id="create">🌐 СОЗДАТЬ ОНЛАЙН-КОМНАТУ</button><label for="code">Код комнаты друга</label><input id="code" maxlength="6" placeholder="Например: 4HK82J" autocapitalize="characters"><button id="join" class="secondary">ПОДКЛЮЧИТЬСЯ ПО КОДУ</button><label for="server">Адрес игрового сервера (нужен для онлайна)</label><input id="server" placeholder="wss://адрес-вашего-сервера" spellcheck="false" autocomplete="off"><div id="toast"></div></section></div>
 </div>
 <script>
 "use strict";
-const W=960,H=540,P=20,B=11,GOAL=92,L=58,R=902,T=24,BOTTOM=516,DEPTH=38,SPEED=185,CHARGE_MS=1150;
+const W=1600,H=900,P=20,B=11,GOAL=115,L=68,R=1532,T=30,BOTTOM=870,DEPTH=52,SPEED=185,CHARGE_MS=1150;
 const $=id=>document.getElementById(id);
 const canvas=$("field"),ctx=canvas.getContext("2d");
 const keys=new Set();let joy={x:0,y:0},controlHeld=false,charging=false,chargeStart=0,shotSeq=0,passSeq=0,shotCharge=0,localShotSeq=0,localPassSeq=0,mode="menu",socket=null,myId=null,lastFrame=performance.now();
@@ -67,7 +67,7 @@ function stopActions(){charging=false;controlHeld=false;joy={x:0,y:0};$("hold").
 function showMenu(){if(socket){socket.close();socket=null}stopActions();mode="menu";$("menu").hidden=false;$("exit").hidden=true;$("roomBadge").style.display="none";banner("Выбери режим")}
 $("exit").onclick=showMenu;
 function player(id,team,x,y){return{id,team,x,y,vx:0,vy:0,faceX:team===0?1:-1,faceY:0,cd:0,noControl:0}}
-function resetWorld(){world={players:[player("me",0,205,H/2),player("bot",1,W-205,H/2)],ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"playing"}}
+function resetWorld(){const players=[];for(let team=0;team<2;team++)for(let slot=0;slot<5;slot++){const p=player(team===0&&slot===2?"me":"bot"+team+"-"+slot,team,team===0?L+110+slot*90:R-110-slot*90,H/2+(slot-2)*125);p.bot=p.id!=="me";p.slot=slot;players.push(p)}world={players,ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:180,status:"playing",tactics:0,aiClock:0}}
 function startPractice(){resetWorld();stopActions();localShotSeq=shotSeq;localPassSeq=passSeq;myId="me";mode="practice";$("menu").hidden=true;$("exit").hidden=false;banner("")}
 $("practice").onclick=startPractice;
 function normalized(x,y){let l=Math.hypot(x,y);return l>1?{x:x/l,y:y/l}:{x,y}}
@@ -128,20 +128,52 @@ function scored(){const b=world.ball;if(b.y>H/2-GOAL+B&&b.y<H/2+GOAL-B){
  if(b.x<=L-DEPTH+B){world.score[1]++;return true}
  if(b.x>=R+DEPTH-B){world.score[0]++;return true}
  }return false}
+function aiStep(game,dt,humanTeam=0){
+ game.aiClock=(game.aiClock||0)+dt;
+ if(game.aiClock>4.5){game.aiClock=0;game.tactics=(game.tactics+1)%4}
+ const b=game.ball;
+ for(const p of game.players){
+  if(!p.bot)continue;
+  const mates=game.players.filter(q=>q.team===p.team),enemies=game.players.filter(q=>q.team!==p.team);
+  const carrier=mates.reduce((best,q)=>Math.hypot(q.x-b.x,q.y-b.y)<Math.hypot(best.x-b.x,best.y-b.y)?q:best,mates[0]);
+  const owns=Math.hypot(carrier.x-b.x,carrier.y-b.y)<P+B+48;
+  const dir=p.team===0?1:-1,slot=p.slot||0,spacing=game.tactics===0?1:game.tactics===1?1.35:game.tactics===2?.7:1.1;
+  let tx,ty;
+  if(slot===0){tx=p.team===0?L+54:R-54;ty=H/2+(b.y-H/2)*.36}
+  else if(p===carrier&&!owns){tx=b.x;ty=b.y}
+  else if(owns){tx=Math.max(L+P,Math.min(R-P,b.x-dir*(slot%2?110:190)*spacing));ty=Math.max(T+P,Math.min(BOTTOM-P,b.y+(slot%2?-95:95)*spacing))}
+  else{tx=p.team===0?L+(R-L)*(.2+slot*.11):R-(R-L)*(.2+slot*.11);ty=H/2+(slot-2)*85*spacing+(b.y-H/2)*.35}
+  const nearest=enemies.reduce((v,q)=>Math.min(v,Math.hypot(q.x-p.x,q.y-p.y)),1e9);
+  if(nearest<65&&owns){ty+=p.y<H/2?55:-55}
+  const d=normalized((tx-p.x)/90,(ty-p.y)/90);
+  p.input={x:d.x,y:d.y,control:owns};
+  movePlayer(p,d,dt,SPEED*(slot===0?.78:.85));
+  if(slot===0&&Math.hypot(b.x-p.x,b.y-p.y)<P+B+30){shoot(p,{x:dir,y:0},"shot",.5);continue}
+  if(p===carrier&&owns&&p.cd<=0){
+   const target=mates.filter(q=>q!==p).sort((a,c)=>(dir*(c.x-a.x)))[0];
+   const pressure=enemies.some(q=>Math.hypot(q.x-p.x,q.y-p.y)<95);
+   const goalDist=Math.abs((p.team===0?R:L)-p.x);
+   if(goalDist<245){shoot(p,{x:dir,y:(H/2-p.y)/Math.max(120,goalDist)},"shot",.4)}
+   else if(target&&pressure){shoot(p,{x:target.x-p.x,y:target.y-p.y},"pass")}
+   else if(Math.random()<dt*.4&&target){shoot(p,{x:target.x-p.x,y:target.y-p.y},"pass")}
+  }
+ }
+}
 function simulate(dt){
  if(world.status!=="playing")return;
  world.time=Math.max(0,world.time-dt);if(world.time===0){world.status="finished";banner("Матч окончен • открой меню");return}
- const a=world.players[0],bot=world.players[1],d=input(),ball=world.ball;
+ const a=world.players.find(p=>p.id==="me"),d=input();
  movePlayer(a,d,dt);
- const dx=ball.x-bot.x,dy=ball.y-bot.y,bd=normalized(dx/90,dy/90);
- movePlayer(bot,bd,dt,SPEED*.88);separate(a,bot);
+ aiStep(world,dt);
+ for(let i=0;i<world.players.length;i++)for(let j=i+1;j<world.players.length;j++)separate(world.players[i],world.players[j]);
  if(shotSeq!==localShotSeq){localShotSeq=shotSeq;shoot(a,d,"shot",shotCharge)}
  if(passSeq!==localPassSeq){localPassSeq=passSeq;shoot(a,d,"pass")}
- if(inRange(bot,ball)&&bot.cd<=0)shoot(bot,{x:-1,y:(H/2-bot.y)/220},"shot",.25);
- physics(dt,holding()&&controlBall(a)?a:null);
+ 
+ const holder=holding()&&controlBall(a)?a:(world.players.find(p=>p.bot&&p.input?.control&&controlBall(p))||null);
+ physics(dt,holder);
  if(scored())goalReset();
 }
-function goalReset(){world.ball={x:W/2,y:H/2,vx:0,vy:0};for(const p of world.players){p.x=p.team===0?205:W-205;p.y=H/2;p.cd=0;p.noControl=.5}banner("ГОООЛ!");setTimeout(()=>{if(mode==="practice")banner("")},1000)}
+function goalReset(){world.ball={x:W/2,y:H/2,vx:0,vy:0};for(const p of world.players){p.x=p.team===0?L+110+p.slot*90:R-110-p.slot*90;p.y=H/2+(p.slot-2)*125;p.cd=0;p.noControl=.5}banner("ГОООЛ!");setTimeout(()=>{if(mode==="practice")banner("")},1000)}
 function connect(action){
  const entered=$("server").value.trim();let url=entered;
  if(!url&&!location.hostname.endsWith("github.io"))url=(location.protocol==="https:"?"wss://":"ws://")+location.host;
@@ -178,10 +210,10 @@ function drawField(){
  ctx.fillStyle="#166e4b";ctx.fillRect(L,T,R-L,BOTTOM-T);
  for(let i=0;i<11;i++){ctx.fillStyle=i%2?"#ffffff0b":"#00000008";ctx.fillRect(L+i*(R-L)/11,T,(R-L)/11,BOTTOM-T)}
  paintGoal("left");paintGoal("right");
- ctx.strokeStyle="#ceffe1c4";ctx.lineWidth=3;ctx.strokeRect(L,T,R-L,BOTTOM-T);
- ctx.beginPath();ctx.moveTo(W/2,T);ctx.lineTo(W/2,BOTTOM);ctx.arc(W/2,H/2,79,0,Math.PI*2);ctx.stroke();
- ctx.strokeRect(L,H/2-144,131,288);ctx.strokeRect(R-131,H/2-144,131,288);
- ctx.strokeRect(L,H/2-80,48,160);ctx.strokeRect(R-48,H/2-80,48,160);
+ ctx.strokeStyle="#ceffe1c4";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(L,T);ctx.lineTo(R,T);ctx.lineTo(R,H/2-GOAL);ctx.moveTo(R,H/2+GOAL);ctx.lineTo(R,BOTTOM);ctx.lineTo(L,BOTTOM);ctx.lineTo(L,H/2+GOAL);ctx.moveTo(L,H/2-GOAL);ctx.lineTo(L,T);ctx.stroke();
+ ctx.beginPath();ctx.moveTo(W/2,T);ctx.lineTo(W/2,BOTTOM);ctx.arc(W/2,H/2,120,0,Math.PI*2);ctx.stroke();
+ ctx.strokeRect(L,H/2-210,180,420);ctx.strokeRect(R-180,H/2-210,180,420);
+ ctx.strokeRect(L,H/2-130,65,260);ctx.strokeRect(R-65,H/2-130,65,260);
  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(W/2,H/2,4,0,Math.PI*2);ctx.fill();
 }
 function draw(){
