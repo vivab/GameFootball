@@ -19,7 +19,7 @@ const server=http.createServer(async(req,res)=>{
  catch{res.writeHead(500);res.end("Frontend not found")}
 });
 const wss=new WebSocketServer({server,maxPayload:1024});
-const safeSend=(ws,data)=>{if(ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))};
+const safeSend=(ws,data)=>{if(ws&&ws.readyState===WebSocket.OPEN)ws.send(JSON.stringify(data))};
 function player(id,team){return{id,team,x:team===0?205:W-205,y:H/2,vx:0,vy:0,faceX:team===0?1:-1,faceY:0,cd:0,noControl:0,lastShotSeq:0,lastPassSeq:0,pendingShot:null,pendingPass:null,input:{x:0,y:0,control:false}}}
 function resetPositions(room){resetMatch(room)}
 function newRoom(code){return{code,players:[],ball:{x:W/2,y:H/2,vx:0,vy:0},score:[0,0],time:TIME,status:"waiting",restart:false}}
@@ -95,7 +95,7 @@ setInterval(()=>{
   tick(room,1/30);
   if(count%2===0){
    const state={type:"state",code:room.code,players:room.players.map(p=>({id:p.id,team:p.team,x:p.x,y:p.y,vx:p.vx/SPEED,vy:p.vy/SPEED})),ball:room.ball,score:room.score,time:room.time,status:room.status,goalNumber:room.goalNumber||0};
-   for(const p of room.players)safeSend(p.ws,state);
+   for(const p of room.players)if(p.ws)safeSend(p.ws,state);
   }
  }
 },1000/30);
