@@ -99,8 +99,8 @@ function physics(room,dt,heldBy){
  if(b.x<L+BR&&!mouth){b.x=L+BR;b.vx=Math.abs(b.vx)*.7}
  if(b.x>R-BR&&!mouth){b.x=R-BR;b.vx=-Math.abs(b.vx)*.7}
  if(mouth){
-  if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+BR){b.x=L-DEPTH+BR;b.vx=Math.abs(b.vx)*.3}}
-  if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-BR){b.x=R+DEPTH-BR;b.vx=-Math.abs(b.vx)*.3}}
+  if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+BR){b.x=L-DEPTH+BR;b.vx=0}}
+  if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-BR){b.x=R+DEPTH-BR;b.vx=0}}
  }
  const speed=Math.hypot(b.vx,b.vy);if(speed>1120){b.vx*=1120/speed;b.vy*=1120/speed}
 }
