@@ -6,7 +6,7 @@ import {randomBytes} from "node:crypto";
 import {WebSocket,WebSocketServer} from "ws";
 
 const PORT=Number(process.env.PORT)||3000;
-const W=1600,H=900,PR=20,BR=11,GOAL=115,TIME=180,L=68,R=1532,T=30,BOTTOM=870,DEPTH=52,SPEED=185;
+const W=1600,H=900,PR=20,BR=11,GOAL=142,TIME=180,L=68,R=1532,T=30,BOTTOM=870,DEPTH=52,SPEED=185;
 const root=resolve(dirname(fileURLToPath(import.meta.url)),"..");
 const rooms=new Map();
 const server=http.createServer(async(req,res)=>{
@@ -64,7 +64,7 @@ function inRange(p,b){return Math.hypot(b.x-p.x,b.y-p.y)<=PR+BR+23}
 function shoot(room,p,kind,charge=0){
  const b=room.ball;if(p.cd>0||!inRange(p,b)||p.retouch>0)return false;
  let aim=norm(p.input.x,p.input.y);if(Math.hypot(aim.x,aim.y)<.15)aim={x:p.faceX,y:p.faceY};const unit=Math.hypot(aim.x,aim.y)||1;aim={x:aim.x/unit,y:aim.y/unit};
- const spread=kind==="pass"?.01+.018*charge:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle),speed=kind==="pass"?395:540+510*charge;
+ const spread=kind==="pass"?.01+.018*charge:.025+.23*charge,angle=(Math.random()*2-1)*spread,c=Math.cos(angle),s=Math.sin(angle),speed=kind==="pass"?520+Math.min(1,charge)*180:1050+Math.min(1,charge)*1000;
  b.vx=(aim.x*c-aim.y*s)*speed;b.vy=(aim.x*s+aim.y*c)*speed;
  b.x=p.x+aim.x*(PR+BR+3);b.y=p.y+aim.y*(PR+BR+3);
  p.cd=kind==="pass"?.3:.4;p.noControl=.5;p.retouch=.65;b.lastTouch=p.id;b.touchLock=.8;return true;
@@ -76,10 +76,10 @@ function controlBall(room,p){
  b.vx=p.vx*SPEED*.75;b.vy=p.vy*SPEED*.75;return true;
 }
 function physics(room,dt,heldBy){
- const b=room.ball,players=room.players,radius=PR+BR;b.touchLock=Math.max(0,(b.touchLock||0)-dt);
+ const b=room.ball,players=room.players,radius=PR+BR;b.prevX=b.x;b.prevY=b.y;b.touchLock=Math.max(0,(b.touchLock||0)-dt);
  if(!heldBy){
   b.x+=b.vx*dt;b.y+=b.vy*dt;
-  const friction=Math.exp(-1.75*dt);b.vx*=friction;b.vy*=friction;
+  const friction=Math.exp(-.75*dt);b.vx*=friction;b.vy*=friction;
   for(const p of players){
    const dx=b.x-p.x,dy=b.y-p.y,dist=Math.hypot(dx,dy);
    if(dist<radius){
@@ -102,14 +102,16 @@ function physics(room,dt,heldBy){
   if(b.x<L){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x<L-DEPTH+BR){b.x=L-DEPTH+BR;b.vx=0}}
   if(b.x>R){b.y=Math.max(top,Math.min(bottom,b.y));if(b.x>R+DEPTH-BR){b.x=R+DEPTH-BR;b.vx=0}}
  }
- const speed=Math.hypot(b.vx,b.vy);if(speed>1120){b.vx*=1120/speed;b.vy*=1120/speed}
+ const speed=Math.hypot(b.vx,b.vy);if(speed>2150){b.vx*=2150/speed;b.vy*=2150/speed}
 }
 function scored(room){
  const b=room.ball;
- if(b.y>H/2-GOAL+BR&&b.y<H/2+GOAL-BR){
-  if(b.x<=L-DEPTH+BR){room.score[1]++;resetPositions(room);return}
-  if(b.x>=R+DEPTH-BR){room.score[0]++;resetPositions(room)}
- }
+ const inMouth=Math.abs(b.y-H/2)<GOAL-BR-5;
+ if(!inMouth)return false;
+ const oldX=Number.isFinite(b.prevX)?b.prevX:b.x;
+ if(oldX<=R&&b.x>R){room.score[0]++;resetPositions(room);return true}
+ if(oldX>=L&&b.x<L){room.score[1]++;resetPositions(room);return true}
+ return false;
 }
 function fillBots(room){
  room.players=room.players.filter(p=>!p.bot);
