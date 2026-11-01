@@ -423,7 +423,7 @@ function playerPass(){
  if(!playerOwnsBall()){toast("Получи мяч, прежде чем пасовать.");return false}
  const m=match,p=m.home[m.controlIdx],aim=currentAim();
  shootBall(m.ball,p,aim,265);
- m.owner=null;m.ballRecover=.27;m.lastKick="pass";m.lastShooter=null;
+ m.owner=null;m.ballRecover=.27;m.lastKick="pass";m.lastShooter={team:0,idx:m.controlIdx,kind:"pass"};
  m.individual.passes++;m.assistPending=true;m.aiTimer=0;
  addEvent("Пас в сторону прицела. Мяч движется по полю.");
  updatePlayerHUD();return true;
@@ -657,6 +657,7 @@ function stepHighlight(dt){
    const nearest=contenders.map(c=>({...c,d:Math.hypot(c.p.x-m.ball.x,c.p.y-m.ball.y)})).sort((a,b)=>a.d-b.d)[0];
    if(nearest?.d<22){
     m.owner={team:nearest.team,idx:nearest.idx};
+    if(nearest.team===1)m.assistPending=false;
     m.ball.vx=0;m.ball.vy=0;m.aiTimer=0;
    }
   }
