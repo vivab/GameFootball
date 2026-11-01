@@ -94,3 +94,36 @@
  .player-mobile-controls .player-match-buttons{width:186px}
  .player-mobile-controls .player-match-buttons button{min-height:34px}
 }
+
+/* International football archive, leagues and honest partial club rosters. */
+.world-create-panel{border-radius:10px;padding:14px;margin:3px 0 8px;background:#17422c8c;border:1px solid #8dd69c4b;display:grid;gap:8px}
+.world-create-panel .eyebrow{margin:0}
+.world-create-panel .fine{margin:0 0 4px}
+.world-create-panel button{background:#287a48;border:1px solid #92d9a3;border-radius:8px;color:#fff;padding:11px 12px;font-size:12px;font-weight:850}
+.world-create-panel select{width:100%;min-width:0;background:#0b2216;border:1px solid #70a8868c;border-radius:6px;padding:9px;color:#f2fff4}
+#real-select-wrap input,#real-select-wrap select{width:100%;margin-top:8px}
+.world-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+.world-filters label{display:grid;gap:6px;color:#b8d4c0;font-size:10px;font-weight:800;letter-spacing:1px}
+.world-filters input,.world-filters select{min-width:0;width:100%;background:#0d2016;color:#f2ffef;border:1px solid #76a7807a;border-radius:8px;padding:11px}
+.world-layout{display:grid;grid-template-columns:minmax(290px,1.15fr) minmax(270px,.85fr);gap:16px;align-items:start}
+.world-clubs-panel,.world-club-details{border:1px solid #76a78066;border-radius:12px;background:#172d21e9;padding:16px;min-width:0}
+.world-list-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:11px;border-bottom:1px solid #ffffff23;font-size:12px;letter-spacing:1px}
+.world-list-head small{color:#b1d8b7;font-size:11px}
+.world-clubs-list{max-height:min(60dvh,550px);overflow:auto;overscroll-behavior:contain;padding-top:6px;display:grid;align-content:start;gap:5px}
+.world-clubs-list button{border:1px solid #ffffff15;background:#1d3c2bc9;text-align:left;display:grid;gap:3px;border-radius:6px;padding:10px 12px;color:#f0ffef}
+.world-clubs-list button:hover,.world-clubs-list button.selected{background:#2b6941;border-color:#8ed99e}
+.world-clubs-list button strong{font-size:14px}
+.world-clubs-list button span{font-size:10px;color:#c3d5c7}
+.world-club-details h3{font-size:clamp(19px,2.5vw,28px);margin:0 0 8px;overflow-wrap:anywhere}
+.world-club-details .eyebrow{margin:0 0 9px}
+#world-pick-club{background:#27874c;border:1px solid #8bdfa0;padding:10px 14px;border-radius:7px;font-weight:850;font-size:12px;margin:12px 0;width:100%}
+.world-roster-list{display:grid;gap:5px;max-height:min(42dvh,350px);overflow:auto}
+.roster-row{display:flex;align-items:center;gap:12px;background:#0e2418;border:1px solid #ffffff16;padding:8px 10px;border-radius:6px}
+.roster-row .roster-number{flex:0 0 26px;color:#b8eac4;font-weight:900}
+.roster-row .roster-details{display:grid;gap:2px;min-width:0}
+.roster-row strong{font-size:12px;font-weight:750;overflow-wrap:anywhere}
+.roster-row small{font-size:10px;color:#b6c9b7}
+.world-data-warning{font-size:12px;color:#f0d49e;background:#56401b75;border:1px solid #e8c58d66;padding:9px;border-radius:8px}
+.catalog-error{padding:15px;background:#532d24;border:1px solid #c07c68;color:#ffe3d8;border-radius:8px}
+@media(max-width:850px){.world-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.world-layout{grid-template-columns:1fr}.world-clubs-list{max-height:43dvh}.world-roster-list{max-height:45dvh}.world-club-details{padding:12px}}
+@media(max-height:460px) and (orientation:landscape){.world-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.world-layout{grid-template-columns:minmax(0,1fr) minmax(230px,.85fr)}.world-clubs-list{max-height:48dvh}.world-roster-list{max-height:35dvh}.world-screen .page-head h2{font-size:24px}.world-filters input,.world-filters select{padding:7px}.world-clubs-panel,.world-club-details{padding:10px}.world-filters{margin-bottom:8px}}
