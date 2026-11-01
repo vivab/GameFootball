@@ -1,4 +1,5 @@
 import {PLAYER_SKILLS,makePlayerProfile,ensurePlayerProfile,playerOverall,training,matchProgress,availableOffers,acceptOffer,positionIndex,positionLabel,xpLevel} from "./player-career.js";
+import {FIELD,createMoments,normalizeDirection,shootBall,advanceBall,simulateMoment,randomGapScore} from "./highlights.js";
 
 "use strict";
 const $ = id => document.getElementById(id);
@@ -17,7 +18,7 @@ let selected=10, phase="attack", drawing=false, drawMoved=false, drawn=[];
 let previewTactics={formation:"433",routes:{},instructions:{}};
 let match=null, raf=0, lastFrame=0, saveIdDuringMatch=null, returnFromTactics="career";
 const movementKeys=new Set();
-let joystick={x:0,y:0},joystickActive=false;
+let joystick={x:0,y:0},joystickActive=false,lastAim={x:1,y:0};
 function readJSON(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch{return fallback}}
 function store(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(saves))}catch{toast("Не удалось сохранить: браузер ограничивает хранилище")}}
 function storePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs))}catch{}}
@@ -35,7 +36,7 @@ function go(target){
  if(target==="tactics")openTactics();
  if(target==="stats")renderStats();
  if(target==="match"&&!match)beginMatch();
- if(target==="match"&&match){match.paused=false;lastFrame=performance.now()}
+ if(target==="match"&&match){if(!match.playerMode||["manual","net"].includes(match.highlightState))match.paused=false;lastFrame=performance.now()}
  updateHeader();
  window.scrollTo(0,0);
 }
@@ -273,34 +274,133 @@ function initPlayers(form,team){
   return {number:i+1,team,x,y,homeX:x,homeY:y,hasBall:false,energy:1};
  });
 }
+
+function isHighlightManual(){return Boolean(match?.playerMode&&match.highlightState==="manual"&&!match.paused&&screen==="match")}
+function currentAim(){
+ let x=joystick.x,y=joystick.y;
+ if(Math.hypot(x,y)<.15){
+  x=Number(movementKeys.has("d")||movementKeys.has("arrowright"))-Number(movementKeys.has("a")||movementKeys.has("arrowleft"));
+  y=Number(movementKeys.has("s")||movementKeys.has("arrowdown"))-Number(movementKeys.has("w")||movementKeys.has("arrowup"));
+ }
+ if(Math.hypot(x,y)>=.15)lastAim=normalizeDirection({x,y},lastAim);
+ return {...lastAim};
+}
+function setMomentUI(state){
+ const player=Boolean(match?.playerMode);
+ $("moment-overlay").hidden=!player||state!=="prompt";
+ $("player-mobile-controls").hidden=!player||state!=="manual";
+ $("moment-info").hidden=!player||state!=="manual";
+}
+function betweenHighlights(){
+ const m=match;if(!m)return;
+ const gap=randomGapScore();
+ m.score[0]+=gap.home;m.score[1]+=gap.away;
+ if(gap.home||gap.away)addEvent("В другое время матча забили: "+(gap.home?"хозяева ":"")+(gap.away?"гости":"")+".");
+ updateScore();
+}
+function prepareMoment(){
+ const m=match,h=m.currentMoment,p=m.home[m.controlIdx],wing=h.kind==="wing",side=m.highlightIndex%2?1:-1;
+ p.x=h.kind==="counter"?620:wing?680:730;
+ p.y=wing?295+side*112:295+side*(36+Math.random()*25);
+ for(let i=0;i<m.home.length;i++){
+  if(i===m.controlIdx)continue;
+  const q=m.home[i];
+  q.x=i===0?FIELD.left+18:Math.max(FIELD.left+25,Math.min(FIELD.right-100,p.x-115+(i%4)*60));
+  q.y=i===0?295:Math.max(65,Math.min(525,p.y+(i%5-2)*67));
+ }
+ for(let i=0;i<m.away.length;i++){
+  const q=m.away[i];
+  q.x=i===0?FIELD.right-22:Math.min(885,Math.max(550,p.x+105+(i%3)*25));
+  q.y=i===0?295:Math.max(65,Math.min(525,90+(i*53+m.highlightIndex*19)%405));
+ }
+ m.owner={team:0,idx:m.controlIdx};
+ if(h.kind==="through"){
+  const passer=m.controlIdx===9?8:9;
+  m.owner={team:0,idx:passer};
+  m.home[passer].x=p.x-90;m.home[passer].y=p.y-25;
+ }
+ const q=m.home[m.owner.idx];
+ m.ball={x:q.x+12,y:q.y,vx:0,vy:0,inNet:null};
+ m.ballRecover=0;m.lastKick=null;m.lastShooter=null;m.assistPending=false;m.aiTimer=0;m.netHold=0;
+ lastAim={x:1,y:0};
+}
+function nextMoment(previous=""){
+ const m=match;if(!m?.playerMode)return;
+ if(m.highlightIndex>=0)betweenHighlights();
+ m.highlightIndex++;
+ if(m.highlightIndex>=m.moments.length){
+  m.elapsed=5400;addEvent("Финальный свисток.");finishMatch(true);return;
+ }
+ m.currentMoment=m.moments[m.highlightIndex];
+ m.elapsed=m.currentMoment.minute*60;m.highlightState="prompt";m.paused=true;
+ m.secondsRemaining=m.currentMoment.duration;prepareMoment();
+ $("moment-stage").textContent="ЭПИЗОД "+(m.highlightIndex+1)+" ИЗ "+m.moments.length+" · "+m.currentMoment.minute+"'";
+ $("moment-title").textContent=m.currentMoment.title.toUpperCase();
+ $("moment-description").textContent=m.currentMoment.hint+" Сыграть самому или доверить момент ИИ?";
+ $("moment-last-result").textContent=previous;
+ $("moment-count").textContent="МОМЕНТ "+(m.highlightIndex+1)+" / "+m.moments.length;
+ $("moment-timer").textContent=Math.ceil(m.secondsRemaining)+" СЕК.";
+ $("moment-status").textContent="Всё время между эпизодами симулируется. Выбери, как сыграть этот момент.";
+ addEvent("Момент игрока: "+m.currentMoment.title.toLowerCase());
+ setMomentUI("prompt");updateScore();updatePlayerHUD();
+}
+function simulateCurrent(){
+ const m=match;if(!m?.playerMode||m.highlightState!=="prompt")return "";
+ const p=ensurePlayerProfile(active()),result=simulateMoment(p,m.currentMoment);
+ m.individual.shots+=result.shots;m.individual.passes+=result.passes;
+ let message="ИИ отыграл эпизод, но гола не получилось.";
+ if(result.goal){m.score[0]++;m.individual.goals++;message="ИИ забил гол за "+active().name+"!";}
+ else if(result.assist){m.score[0]++;m.individual.assists++;message="ИИ сделал голевую передачу от твоего имени!";}
+ addEvent(message);updateScore();updatePlayerHUD();return message;
+}
+$("moment-play").onclick=()=>{
+ if(!match?.playerMode||match.highlightState!=="prompt")return;
+ match.highlightState="manual";match.paused=false;setMomentUI("manual");
+ $("moment-status").textContent="Стик слева задаёт направление движения, удара и паса.";
+ lastFrame=performance.now();
+};
+$("moment-ai").onclick=()=>{const message=simulateCurrent();if(message)nextMoment(message)};
+$("moment-ai-all").onclick=()=>{
+ const m=match;if(!m?.playerMode||m.highlightState!=="prompt")return;
+ while(match&&m.highlightIndex<m.moments.length){
+  simulateCurrent();
+  if(m.highlightIndex===m.moments.length-1)break;
+  betweenHighlights();m.highlightIndex++;m.currentMoment=m.moments[m.highlightIndex];
+  m.elapsed=m.currentMoment.minute*60;
+ }
+ if(match){m.elapsed=5400;finishMatch(true)}
+};
 function beginMatch(){
  const w=active();if(!w){go("saves");return}
- const isPlayer=w.mode!=="coach";
- const profile=isPlayer?ensurePlayerProfile(w):null;
- const controlIdx=isPlayer?positionIndex(profile.position):null;
+ const playerMode=w.mode!=="coach",profile=playerMode?ensurePlayerProfile(w):null;
+ const controlIdx=playerMode?positionIndex(profile.position):null;
  const opponent=OPPONENTS[w.played%OPPONENTS.length];
- match={home:initPlayers(w.formation,0),away:initPlayers("442",1),ball:{x:500,y:295,vx:0,vy:0},
-  owner:{team:0,idx:9},score:[0,0],elapsed:0,paused:false,speed:1,
-  actionTimer:1.1,events:[],eventsTimer:0,opponent,formation:w.formation,completed:false,
-  playerMode:isPlayer,controlIdx,assistPending:false,
+ match={home:initPlayers(w.formation,0),away:initPlayers("442",1),
+  ball:{x:500,y:295,vx:0,vy:0,inNet:null},owner:{team:0,idx:9},score:[0,0],elapsed:0,
+  paused:playerMode,speed:1,actionTimer:1.1,events:[],eventsTimer:0,opponent,
+  formation:w.formation,completed:false,playerMode,controlIdx,
+  highlightState:playerMode?"prompt":"full",moments:playerMode?createMoments():[],
+  highlightIndex:-1,secondsRemaining:0,assistPending:false,
   individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0}};
- if(isPlayer){
+ if(playerMode){
   const current=match.home[controlIdx].number;
-  const existing=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
-  if(existing)existing.number=current;
+  const other=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
+  if(other)other.number=current;
   match.home[controlIdx].number=profile.number;
  }
- joystick={x:0,y:0};movementKeys.clear();updateTouchStick();
+ joystick={x:0,y:0};lastAim={x:1,y:0};movementKeys.clear();updateTouchStick();
  saveIdDuringMatch=w.id;
+ $("match").classList.toggle("player-highlights",playerMode);
+ $("match-kicker").textContent=playerMode?"КАРЬЕРА ИГРОКА · КЛЮЧЕВЫЕ МОМЕНТЫ":"ТРЕНЕР · ПОЛНЫЙ МАТЧ";
  $("match-fixture").textContent=w.club+" — "+opponent;
- $("coach-match-panel").hidden=isPlayer;
- $("player-match-panel").hidden=!isPlayer;
- $("match-formation").value=w.formation;$("match-speed").value="1";$("match-pause").textContent="ПАУЗА";
- $("player-match-pause").textContent="ПАУЗА";
- $("player-match-name").textContent=isPlayer?w.name.toUpperCase()+" · №"+profile.number:"";
- $("end-match").textContent=isPlayer?"ВЫЙТИ ИЗ МАТЧА":"ЗАВЕРШИТЬ ПРОСМОТР";
- addEvent(isPlayer?"Ты выходишь на поле. Управляй своим игроком!":"Начало матча. Команды вышли на поле.");
- updateScore();updatePlayerHUD();
+ $("coach-match-panel").hidden=playerMode;$("player-match-panel").hidden=!playerMode;
+ $("match-formation").value=w.formation;$("match-speed").value="1";
+ $("match-pause").textContent="ПАУЗА";$("player-match-pause").textContent="ПАУЗА";
+ $("player-match-name").textContent=playerMode?w.name.toUpperCase()+" · №"+profile.number:"";
+ $("end-match").textContent=playerMode?"ПОКИНУТЬ МАТЧ":"ЗАВЕРШИТЬ ПРОСМОТР";
+ if(playerMode)nextMoment();
+ else{setMomentUI("full");addEvent("Начало матча.");updateScore()}
+ updatePlayerHUD();
  if(!raf){lastFrame=performance.now();raf=requestAnimationFrame(frame)}
 }
 function addEvent(s){
