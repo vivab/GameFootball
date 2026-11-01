@@ -143,7 +143,7 @@ function renderPlayerDashboard(w){
  $("player-status").textContent=p.careerStage||"Основной состав";
  $("player-shirt-number").textContent=p.number;
  $("player-overall").textContent=playerOverall(p);
- const stats=[["МАТЧИ",p.appearances],["ГОЛЫ",p.goals],["ГОЛЕВЫЕ",p.assists],["УРОВЕНЬ",xpLevel(p)]];
+ const stats=[["МАТЧИ",p.appearances],["ГОЛЫ",p.goals],[p.position==="GK"?"СЕЙВЫ":"ГОЛЕВЫЕ",p.position==="GK"?(p.saves||0):p.assists],["УРОВЕНЬ",xpLevel(p)]];
  $("player-metrics").replaceChildren();
  for(const [label,value] of stats){
   const cell=document.createElement("div");cell.className="figure";
@@ -330,8 +330,9 @@ function betweenHighlights(){
 }
 function prepareMoment(){
  const m=match,h=m.currentMoment,p=m.home[m.controlIdx],wing=h.kind==="wing",side=m.highlightIndex%2?1:-1;
- p.x=h.kind==="counter"?620:wing?680:730;
- p.y=wing?295+side*112:295+side*(36+Math.random()*25);
+ const isKeeper=ensurePlayerProfile(active()).position==="GK";
+ p.x=isKeeper?FIELD.left+24:h.kind==="counter"?620:wing?680:730;
+ p.y=isKeeper?295:wing?295+side*112:295+side*(36+Math.random()*25);
  for(let i=0;i<m.home.length;i++){
   if(i===m.controlIdx)continue;
   const q=m.home[i];
@@ -344,12 +345,16 @@ function prepareMoment(){
   q.y=i===0?295:Math.max(65,Math.min(525,90+(i*53+m.highlightIndex*19)%405));
  }
  m.owner={team:0,idx:m.controlIdx};
- if(h.kind==="through"){
+ if(isKeeper){
+  m.owner={team:1,idx:9};
+  m.away[9].x=FIELD.left+225;m.away[9].y=295+side*54;
+ }
+ if(!isKeeper&&h.kind==="through"){
   const passer=m.controlIdx===9?8:9;
   m.owner={team:0,idx:passer};
   m.home[passer].x=p.x-90;m.home[passer].y=p.y-25;
  }
- const q=m.home[m.owner.idx];
+ const q=(m.owner.team===0?m.home:m.away)[m.owner.idx];
  m.ball={x:q.x+12,y:q.y,vx:0,vy:0,inNet:null};
  m.ballRecover=0;m.lastKick=null;m.lastShooter=null;m.assistPending=false;m.aiTimer=0;m.netHold=0;
  lastAim={x:1,y:0};
@@ -362,6 +367,10 @@ function nextMoment(previous=""){
   m.elapsed=5400;addEvent("Финальный свисток.");finishMatch(true);return;
  }
  m.currentMoment=m.moments[m.highlightIndex];
+ const keeper=ensurePlayerProfile(active()).position==="GK";
+ if(keeper){m.currentMoment={...m.currentMoment,kind:"keeper",title:"Удар по твоим воротам",hint:"Вратарские моменты сейчас рассчитываются ИИ. Ручное управление появится позже."};}
+ $("moment-play").disabled=keeper;
+ $("moment-play").textContent=keeper?"РУЧНОЙ РЕЖИМ ВРАТАРЯ В РАЗРАБОТКЕ":"▶ СЫГРАТЬ МОМЕНТ";
  m.elapsed=m.currentMoment.minute*60;m.highlightState="prompt";m.paused=true;
  m.secondsRemaining=m.currentMoment.duration;prepareMoment();
  $("moment-stage").textContent="ЭПИЗОД "+(m.highlightIndex+1)+" ИЗ "+m.moments.length+" · "+m.currentMoment.minute+"'";
@@ -376,7 +385,15 @@ function nextMoment(previous=""){
 }
 function simulateCurrent(){
  const m=match;if(!m?.playerMode||m.highlightState!=="prompt")return "";
- const p=ensurePlayerProfile(active()),result=simulateMoment(p,m.currentMoment);
+ const p=ensurePlayerProfile(active());
+ if(p.position==="GK"){
+  const save=Math.random()<.24+p.skills.defending*.007;
+  let message;
+  if(save){m.individual.saves++;message="Вратарь совершил сейв! Соперник не забил.";}
+  else{m.score[1]++;message="Соперник реализовал момент — пропущенный мяч.";}
+  addEvent(message);updateScore();updatePlayerHUD();return message;
+ }
+ const result=simulateMoment(p,m.currentMoment);
  m.individual.shots+=result.shots;m.individual.passes+=result.passes;
  let message="ИИ отыграл эпизод, но гола не получилось.";
  if(result.goal){m.score[0]++;m.individual.goals++;message="ИИ забил гол за "+active().name+"!";}
@@ -384,7 +401,7 @@ function simulateCurrent(){
  addEvent(message);updateScore();updatePlayerHUD();return message;
 }
 $("moment-play").onclick=()=>{
- if(!match?.playerMode||match.highlightState!=="prompt")return;
+ if(!match?.playerMode||match.highlightState!=="prompt"||ensurePlayerProfile(active()).position==="GK")return;
  match.highlightState="manual";match.paused=false;setMomentUI("manual");
  $("moment-status").textContent="Стик слева задаёт направление движения, удара и паса.";
  lastFrame=performance.now();
@@ -411,7 +428,7 @@ function beginMatch(){
   formation:w.formation,completed:false,playerMode,controlIdx,
   highlightState:playerMode?"prompt":"full",moments:playerMode?createMoments():[],
   highlightIndex:-1,secondsRemaining:0,assistPending:false,
-  individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0}};
+  individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0,saves:0}};
  if(playerMode){
   const current=match.home[controlIdx].number;
   const other=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
@@ -445,7 +462,7 @@ function addEvent(s){
 function updatePlayerHUD(){
  if(!match?.playerMode)return;
  const p=match.individual;
- $("player-match-hud").textContent="Голы: "+p.goals+" · Пасы: "+p.passes+" · Удары: "+p.shots+" · Отборы: "+p.tackles;
+ $("player-match-hud").textContent="Голы: "+p.goals+" · Пасы: "+p.passes+" · Удары: "+p.shots+" · Отборы: "+p.tackles+(p.saves?" · Сейвы: "+p.saves:"");
 }
 function playerOwnsBall(){return isHighlightManual()&&match.owner?.team===0&&match.owner.idx===match.controlIdx}
 
