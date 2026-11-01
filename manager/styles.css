@@ -33,3 +33,64 @@
 #player-match-hud{margin:0;color:#d9eddc}
 @media(max-width:850px){.player-dashboard{grid-template-columns:1fr}.player-sidebar{min-height:0}.player-identity{padding:12px;gap:10px}.player-identity h3{font-size:18px}.jersey{height:72px;width:60px;font-size:24px}.player-overall strong{font-size:30px}.player-overall{min-width:70px}.player-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.match-grid{grid-template-columns:minmax(0,1fr) 205px}.match-aside{grid-template-columns:1fr}}
 @media(max-height:540px) and (orientation:landscape){.player-dashboard{grid-template-columns:1.5fr 1fr}.player-main,.player-sidebar{padding:12px}.player-identity{margin-bottom:8px}.player-identity .jersey{height:56px;width:50px;font-size:17px}.player-identity h3{font-size:16px}.player-overall strong{font-size:25px}.player-metrics .figure strong{font-size:20px}.player-train-head{margin:12px 0 7px}.skill-item{padding:8px}.match-grid{grid-template-columns:minmax(0,1fr) 184px}.player-match-aside{grid-template-columns:1fr 1fr;gap:5px}.player-match-aside .eyebrow,.player-match-aside>strong,.player-match-aside #player-match-hud,.player-match-aside .events,.player-match-aside .match-help{display:none}.player-match-aside #touch-pad{width:95px;height:95px;grid-row:span 2}.player-match-aside .player-match-buttons{grid-row:span 2}.player-match-aside #player-match-pause{grid-column:1/-1}.match-aside .player-match-buttons button{padding:7px 2px;font-size:10px}}
+
+/* Key-moment footballer career: pitch is the centre, joystick left and actions right. */
+.match-screen.player-highlights .match-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+.match-screen.player-highlights .match-pitch{position:relative;width:100%;max-width:1220px;margin:auto;overflow:hidden}
+.match-screen.player-highlights #player-match-panel{width:100%;max-width:1220px;margin:auto;display:grid;grid-template-columns:minmax(180px,1fr) 160px minmax(190px,1.4fr);align-items:start;gap:8px 18px;padding:11px 16px}
+.match-screen.player-highlights #player-match-panel .eyebrow{margin:0}
+.match-screen.player-highlights #player-match-panel .match-help{grid-column:1/-1;margin:0;font-size:10px}
+.match-screen.player-highlights #player-match-panel .events{grid-column:1/-1;max-height:64px}
+.match-screen.player-highlights #player-match-panel #player-match-pause{margin:0;padding:9px}
+.match-screen.player-highlights #player-match-panel #moment-status{margin:0;font-size:11px}
+.match-pitch{position:relative}
+.player-mobile-controls{position:absolute;z-index:6;bottom:clamp(6px,1.8vw,21px);left:clamp(8px,2vw,20px);right:clamp(8px,2vw,20px);display:flex;align-items:flex-end;justify-content:space-between;gap:10px;pointer-events:none;touch-action:none}
+.player-mobile-controls>*{pointer-events:auto}
+.player-mobile-controls .joystick-area{display:flex;flex-direction:column;align-items:center;gap:4px;touch-action:none;user-select:none}
+.player-mobile-controls .joystick-area small{font-size:10px;letter-spacing:.8px;color:#e6f7eb;text-shadow:0 2px 4px #08170b}
+.player-mobile-controls #touch-pad{width:clamp(88px,13vw,142px);height:clamp(88px,13vw,142px);background:#0b231d99;border:2px solid #a9e8beaf;box-shadow:0 0 0 5px #0002,0 7px 20px #0008}
+.player-mobile-controls #touch-pad span{font-size:clamp(7px,.8vw,10px);bottom:6px;letter-spacing:.5px;color:#f7fff7}
+.player-mobile-controls .player-match-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:clamp(164px,23vw,263px);gap:8px}
+.player-mobile-controls .player-match-buttons button{min-height:clamp(39px,5.5vw,57px);border:2px solid #ffffff7a;border-radius:11px;font-size:clamp(10px,1.18vw,14px);font-weight:950;color:#fff;box-shadow:0 6px 12px #0009;text-shadow:0 1px 2px #0005;padding:4px;touch-action:manipulation}
+.player-mobile-controls .player-match-buttons .pass-btn{background:#246c8f}
+.player-mobile-controls .player-match-buttons .shoot-btn{background:#ce8334}
+.player-mobile-controls .player-match-buttons .tackle-btn{background:#9d4d45}
+.player-mobile-controls .player-match-buttons .call-btn{background:#317d4f}
+.player-mobile-controls .player-match-buttons button:active{transform:translateY(2px);filter:brightness(1.2)}
+.moment-info{position:absolute;z-index:5;top:12px;left:12px;display:flex;align-items:center;gap:15px;background:#0a1e16e8;border:1px solid #9ee6b990;border-radius:8px;padding:10px 13px;color:#edffec;font-size:12px;font-weight:850;letter-spacing:1px;text-shadow:0 1px 1px #000}
+.moment-info strong{color:#ffdd8b;font-size:16px}
+.moment-overlay{position:absolute;inset:0;z-index:10;background:#04120ce3;display:grid;place-items:center;padding:12px;backdrop-filter:blur(3px)}
+.moment-card{width:min(530px,96%);padding:clamp(16px,3vw,30px);background:linear-gradient(142deg,#244935,#091e16);border:1px solid #a2e5b59e;border-radius:14px;box-shadow:0 16px 45px #000b;text-align:left}
+.moment-card .eyebrow{display:block;margin:0 0 7px}
+.moment-card h3{margin:0 0 10px;font-size:clamp(22px,3vw,33px);line-height:1.05;color:#f3fff7}
+.moment-card p{color:#c5dacc;margin:8px 0;font-size:clamp(11px,1.2vw,14px)}
+.moment-card .moment-last-result{font-weight:800;color:#ffdf8a;min-height:16px}
+.moment-choices{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:16px}
+.moment-choices button{min-height:42px;padding:9px;border:1px solid #afd2b681;border-radius:9px;background:#28573b;font-weight:850;font-size:clamp(10px,1.15vw,13px)}
+.moment-choices button.moment-play{grid-column:1/-1;background:#2d9153;border-color:#98e9a5;font-size:clamp(12px,1.4vw,15px)}
+#moment-status{color:#d7eac7}
+@media(max-width:720px){
+ .match-screen.player-highlights .match-grid{grid-template-columns:minmax(0,1fr)}
+ .match-screen.player-highlights #player-match-panel{display:flex;flex-wrap:wrap;gap:5px 12px;padding:9px}
+ .match-screen.player-highlights #player-match-panel .events{width:100%;max-height:58px}
+ .player-mobile-controls .joystick-area small{display:none}
+ .player-mobile-controls .player-match-buttons{width:clamp(130px,39vw,205px);gap:5px}
+ .player-mobile-controls .player-match-buttons button{min-height:35px;font-size:10px}
+ .player-mobile-controls #touch-pad{width:clamp(80px,23vw,118px);height:clamp(80px,23vw,118px)}
+}
+@media(max-height:460px) and (orientation:landscape){
+ .match-screen.player-highlights{padding-top:8px}
+ .match-screen.player-highlights .match-top{margin-bottom:6px}
+ .match-screen.player-highlights .match-top .eyebrow{display:none}
+ .match-screen.player-highlights #player-match-panel{padding:6px 10px}
+ .match-screen.player-highlights #player-match-panel .match-help,.match-screen.player-highlights #player-match-panel .events{display:none}
+ .moment-card{padding:12px 16px}
+ .moment-card h3{font-size:20px}
+ .moment-choices{margin-top:6px}
+ .moment-choices button{min-height:32px}
+ .moment-info{padding:6px 8px;font-size:10px;top:6px;left:6px}
+ .player-mobile-controls{bottom:7px}
+ .player-mobile-controls #touch-pad{width:86px;height:86px}
+ .player-mobile-controls .player-match-buttons{width:186px}
+ .player-mobile-controls .player-match-buttons button{min-height:34px}
+}

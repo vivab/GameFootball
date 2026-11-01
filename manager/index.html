@@ -105,15 +105,46 @@
       </aside></div>
     </section>
     <section id="match" class="screen panel-screen match-screen">
-      <div class="match-top"><div><p class="eyebrow">СИМУЛЯЦИЯ · ПРОТОТИП</p><strong id="match-fixture">ФК Аврора — ФК Север</strong></div><div class="score"><strong id="match-score">0 : 0</strong><span id="match-minute">00'</span></div><button id="end-match">ЗАВЕРШИТЬ ПРОСМОТР</button></div>
-      <div class="match-grid"><div class="match-pitch"><canvas id="match-canvas" width="1000" height="590" aria-label="Футбольный матч 11 на 11"></canvas></div>
+      <div class="match-top"><div><p class="eyebrow" id="match-kicker">СИМУЛЯЦИЯ · ПРОТОТИП</p><strong id="match-fixture">ФК Аврора — ФК Север</strong></div><div class="score"><strong id="match-score">0 : 0</strong><span id="match-minute">00'</span></div><button id="end-match">ЗАВЕРШИТЬ ПРОСМОТР</button></div>
+      <div class="match-grid">
+        <div class="match-pitch">
+          <canvas id="match-canvas" width="1000" height="590" aria-label="Футбольный матч 11 на 11, ворота с сеткой"></canvas>
+          <div id="moment-info" class="moment-info" hidden>
+            <span id="moment-count">МОМЕНТ 1 ИЗ 5</span>
+            <strong id="moment-timer">17 СЕК.</strong>
+          </div>
+          <div id="moment-overlay" class="moment-overlay" hidden>
+            <div class="moment-card">
+              <span class="eyebrow" id="moment-stage">КЛЮЧЕВОЙ МОМЕНТ</span>
+              <h3 id="moment-title">ТВОЙ ШАНС</h3>
+              <p id="moment-description">Откройся под передачу, разыграй эпизод или пробей по воротам.</p>
+              <p id="moment-last-result" class="moment-last-result"></p>
+              <div class="moment-choices">
+                <button id="moment-play" class="moment-play">▶ СЫГРАТЬ МОМЕНТ</button>
+                <button id="moment-ai">ДОВЕРИТЬ ИИ</button>
+                <button id="moment-ai-all">ВЕСЬ МАТЧ — ИИ</button>
+              </div>
+            </div>
+          </div>
+          <div id="player-mobile-controls" class="player-mobile-controls" hidden>
+            <div class="joystick-area">
+              <div id="touch-pad" aria-label="Джойстик: направление движения, паса и удара" role="group"><div id="touch-stick"></div><span>НАПРАВЛЕНИЕ</span></div>
+              <small>СТИК = ПРИЦЕЛ</small>
+            </div>
+            <div class="player-match-buttons">
+              <button id="player-pass" class="pass-btn">ПАС</button>
+              <button id="player-shoot" class="shoot-btn">УДАР</button>
+              <button id="player-tackle" class="tackle-btn">ОТБОР</button>
+              <button id="player-call" class="call-btn">ПОПРОСИТЬ ПАС</button>
+            </div>
+          </div>
+        </div>
         <aside id="coach-match-panel" class="match-aside"><p class="eyebrow">ТРЕНЕРСКАЯ ПАНЕЛЬ</p><label for="match-formation">СМЕНИТЬ СХЕМУ</label><select id="match-formation"><option value="433">4-3-3</option><option value="442">4-4-2</option><option value="343">3-4-3</option></select><label for="match-speed">СКОРОСТЬ</label><select id="match-speed"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select><button id="match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button><button id="match-edit">ИЗМЕНИТЬ ТАКТИКУ</button><div id="match-events" class="events" aria-live="polite"></div></aside>
         <aside id="player-match-panel" class="match-aside player-match-aside" hidden>
           <p class="eyebrow">КАРЬЕРА ФУТБОЛИСТА</p><strong id="player-match-name">ИГРОК №9</strong>
           <p id="player-match-hud" class="fine">Голы: 0 · Передачи: 0</p>
-          <div id="touch-pad" aria-label="Джойстик движения" role="group"><div id="touch-stick"></div><span>ДВИЖЕНИЕ</span></div>
-          <div class="player-match-buttons"><button id="player-pass" class="pass-btn">ПАС</button><button id="player-shoot" class="shoot-btn">УДАР</button><button id="player-tackle" class="tackle-btn">ОТБОР</button><button id="player-call" class="call-btn">ПОПРОСИТЬ ПАС</button></div>
-          <p class="fine match-help">На ПК: WASD/стрелки — движение, J — пас, K — удар, L — отбор, R — попросить пас.</p>
+          <p id="moment-status" class="fine">В матче тебе будут выпадать отдельные игровые эпизоды.</p>
+          <p class="fine match-help">Стик слева задаёт направление движения, паса и удара. Кнопки справа. На ПК: WASD/стрелки — прицел и движение, J — пас, K — удар, L — отбор, R — запрос передачи.</p>
           <button id="player-match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button>
           <div id="player-match-events" class="events" aria-live="polite"></div>
         </aside>
