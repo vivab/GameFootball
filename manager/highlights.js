@@ -18,7 +18,7 @@ export function createMoments(random=Math.random){
 export function normalizeDirection(input,last={x:1,y:0}){
  const x=Number(input?.x)||0,y=Number(input?.y)||0,len=Math.hypot(x,y);
  if(len<.15){
-  const lx=Number(last?.x)||1,ly=Number(last?.y)||0,l=Math.hypot(lx,ly);
+  const lx=Number(last?.x??1),ly=Number(last?.y??0),l=Math.hypot(lx,ly)||1;
   return {x:lx/l,y:ly/l};
  }
  return {x:x/len,y:y/len};
