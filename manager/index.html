@@ -47,6 +47,7 @@
           <button data-go="saves">МОЯ КАРЬЕРА <span class="end">↗</span></button>
           <button data-go="tactics">ТАКТИЧЕСКАЯ ДОСКА <span class="end">↗</span></button>
           <button data-go="stats">СТАТИСТИКА <span class="end">↗</span></button>
+          <button data-go="world">ЛИГИ И КЛУБЫ <span class="end">🌍</span></button>
           <button data-go="settings">НАСТРОЙКИ <span class="end">⚙</span></button>
         </nav>
       </div>
@@ -68,9 +69,20 @@
       <div class="page-head"><p class="eyebrow">НАСТРОЙКА МИРА</p><h2 id="create-title">НОВАЯ КАРЬЕРА</h2><p id="create-hint"></p></div>
       <form id="world-form" class="form-card">
         <label id="name-label" for="entry-name">Имя</label><input id="entry-name" name="name" maxlength="36" required autocomplete="off">
+        <div id="create-world-controls" class="world-create-panel">
+          <p class="eyebrow">МИРОВОЙ ФУТБОЛ</p>
+          <p class="fine">Выбери реальный клуб по стране и лиге или впиши свой ниже. Составы из базы ЧМ-2026 неполные и могут быть устаревшими.</p>
+          <label for="create-continent">КОНТИНЕНТ</label><select id="create-continent"><option value="">Загрузка базы...</option></select>
+          <label for="create-country">СТРАНА</label><select id="create-country"><option value="">Выберите континент</option></select>
+          <label for="create-league">ЛИГА</label><select id="create-league"><option value="">Все клубы страны</option></select>
+          <label for="create-club">КЛУБ</label><select id="create-club"><option value="">Выберите клуб</option></select>
+          <button type="button" id="use-world-club">ИСПОЛЬЗОВАТЬ КЛУБ</button>
+          <p id="create-club-source" class="fine">Можно также создать собственный клуб.</p>
+        </div>
         <label id="club-label" for="entry-club">Клуб</label><input id="entry-club" name="club" maxlength="36" required autocomplete="off" value="ФК Аврора">
         <div id="position-wrap" hidden><label for="entry-position">ПОЗИЦИЯ ФУТБОЛИСТА</label><select id="entry-position"><option value="ST">Нападающий</option><option value="CM">Полузащитник</option><option value="CB">Защитник</option></select></div>
-        <div id="real-select-wrap" hidden><label for="real-select">Футболист</label><select id="real-select"><option>Криштиану Роналду</option><option>Лионель Месси</option><option>Килиан Мбаппе</option><option>Ламин Ямаль</option></select><p class="fine">Демонстрационный список: реальные составы, клубы и лицензированные материалы пока не подключены.</p></div>
+        <div id="real-select-wrap" hidden><label for="real-player-search">ПОИСК РЕАЛЬНОГО ФУТБОЛИСТА</label><input type="search" id="real-player-search" placeholder="Имя или клуб (данные ЧМ-2026)" autocomplete="off">
+        <label for="real-select">Футболист</label><select id="real-select"><option>Криштиану Роналду</option><option>Лионель Месси</option><option>Килиан Мбаппе</option><option>Ламин Ямаль</option></select><p class="fine">Демонстрационный список: реальные составы, клубы и лицензированные материалы пока не подключены.</p></div>
         <button class="primary" type="submit">СОЗДАТЬ МИР →</button>
       </form>
     </section>
@@ -79,7 +91,7 @@
     </section>
     <section id="career" class="screen panel-screen">
       <div class="page-head"><p class="eyebrow" id="career-type"></p><h2 id="career-name">МОЯ КАРЬЕРА</h2><p id="career-meta"></p></div>
-      <div id="coach-dashboard" class="dashboard"><div class="dashboard-main"><p class="eyebrow">КАБИНЕТ ТРЕНЕРА</p><div id="career-figures" class="figures"></div><p id="career-about" class="fine"></p><div class="career-actions"><button class="primary" data-go="match">▶ СЛЕДУЮЩИЙ МАТЧ</button><button data-go="tactics">ТАКТИКА</button></div></div><div class="side-card"><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="career-news">Твоя история только начинается.</div></div></div>
+      <div id="coach-dashboard" class="dashboard"><div class="dashboard-main"><p class="eyebrow">КАБИНЕТ ТРЕНЕРА</p><div id="career-figures" class="figures"></div><p id="career-about" class="fine"></p><p id="career-world-note" class="fine"></p><div class="career-actions"><button class="primary" data-go="match">▶ СЛЕДУЮЩИЙ МАТЧ</button><button data-go="tactics">ТАКТИКА</button></div></div><div class="side-card"><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="career-news">Твоя история только начинается.</div></div></div>
       <div id="player-dashboard" class="player-dashboard" hidden>
         <div class="player-main">
           <div class="player-identity"><div class="jersey" aria-hidden="true"><span id="player-shirt-number">9</span></div><div><p class="eyebrow">МОЙ ФУТБОЛИСТ</p><h3 id="player-position">Нападающий</h3><p id="player-details" class="fine"></p><span id="player-status" class="status-tag">Основной состав</span></div><div class="player-overall"><strong id="player-overall">60</strong><small>ОБЩИЙ РЕЙТИНГ</small></div></div>
@@ -87,7 +99,7 @@
           <div class="player-train-head"><div><h3>ИНДИВИДУАЛЬНЫЕ ТРЕНИРОВКИ</h3><p class="fine">Зарабатывай очки в матчах и улучшай своего футболиста.</p></div><strong class="training-points" id="training-points">3 ОЧКА</strong></div>
           <div class="skill-grid" id="player-skills"></div>
           <div class="career-actions player-actions"><button class="primary" data-go="match">▶ ВЫЙТИ НА ПОЛЕ</button><button id="player-rest">ВОССТАНОВЛЕНИЕ</button></div>
-          <p id="player-feedback" class="fine">В этом режиме ты управляешь только своим футболистом. Остальной командой управляет ИИ.</p>
+          <p id="player-feedback" class="fine">В этом режиме ты управляешь только своим футболистом. Остальной командой управляет ИИ.</p><p id="player-world-note" class="fine"></p>
         </div>
         <aside class="player-sidebar"><p class="eyebrow">АГЕНТ И КОНТРАКТ</p><h3>МОЯ КАРЬЕРА</h3><p id="player-contract" class="fine"></p><div id="player-offers" class="offers"></div><hr><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="player-news" class="fine"></div></aside>
       </div>
@@ -147,6 +159,33 @@
           <p class="fine match-help">Стик слева задаёт направление движения, паса и удара. Кнопки справа. На ПК: WASD/стрелки — прицел и движение, J — пас, K — удар, L — отбор, R — запрос передачи.</p>
           <button id="player-match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button>
           <div id="player-match-events" class="events" aria-live="polite"></div>
+        </aside>
+      </div>
+    </section>
+    <section id="world" class="screen panel-screen world-screen">
+      <div class="page-head compact">
+        <p class="eyebrow">МИРОВОЙ ФУТБОЛЬНЫЙ КАТАЛОГ</p>
+        <h2>ЛИГИ И КЛУБЫ МИРА</h2>
+        <p id="world-counter">Загружаем настоящие клубы и проверенные списки футболистов...</p>
+      </div>
+      <div class="world-filters">
+        <label>КОНТИНЕНТ<select id="world-continent"><option value="">Все регионы</option></select></label>
+        <label>СТРАНА<select id="world-country"><option value="">Все страны</option></select></label>
+        <label>ЧЕМПИОНАТ<select id="world-league"><option value="">Все чемпионаты</option></select></label>
+        <label>ПОИСК КЛУБА<input id="world-search" type="search" placeholder="Например, Real Madrid или Al Ahly" autocomplete="off"></label>
+      </div>
+      <div class="world-layout">
+        <div class="world-clubs-panel">
+          <div class="world-list-head"><strong>КОМАНДЫ</strong><small id="world-result-counter">Загрузка...</small></div>
+          <div id="world-clubs" class="world-clubs-list"></div>
+        </div>
+        <aside class="world-club-details">
+          <p class="eyebrow">КАРТОЧКА КЛУБА</p><h3 id="world-team-name">Выбери команду</h3>
+          <p id="world-team-meta" class="fine">Слева выбери клуб из любого региона.</p>
+          <button id="world-pick-club">ИГРАТЬ ЗА ЭТОТ КЛУБ</button>
+          <p id="world-roster-status" class="fine"></p>
+          <div id="world-roster" class="world-roster-list"></div>
+          <p class="fine">Игроки указаны по клубу на ЧМ-2026; трансферы и полные составы на текущую дату требуют другого источника данных.</p>
         </aside>
       </div>
     </section>
