@@ -78,7 +78,18 @@
     </section>
     <section id="career" class="screen panel-screen">
       <div class="page-head"><p class="eyebrow" id="career-type"></p><h2 id="career-name">МОЯ КАРЬЕРА</h2><p id="career-meta"></p></div>
-      <div class="dashboard"><div class="dashboard-main"><div id="career-figures" class="figures"></div><p id="career-about" class="fine"></p><div class="career-actions"><button class="primary" data-go="match">▶ СЛЕДУЮЩИЙ МАТЧ</button><button data-go="tactics">ТАКТИКА</button></div></div><div class="side-card"><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="career-news">Твоя история только начинается.</div></div></div>
+      <div id="coach-dashboard" class="dashboard"><div class="dashboard-main"><p class="eyebrow">КАБИНЕТ ТРЕНЕРА</p><div id="career-figures" class="figures"></div><p id="career-about" class="fine"></p><div class="career-actions"><button class="primary" data-go="match">▶ СЛЕДУЮЩИЙ МАТЧ</button><button data-go="tactics">ТАКТИКА</button></div></div><div class="side-card"><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="career-news">Твоя история только начинается.</div></div></div>
+      <div id="player-dashboard" class="player-dashboard" hidden>
+        <div class="player-main">
+          <div class="player-identity"><div class="jersey" aria-hidden="true"><span id="player-shirt-number">9</span></div><div><p class="eyebrow">МОЙ ФУТБОЛИСТ</p><h3 id="player-position">Нападающий</h3><p id="player-details" class="fine"></p><span id="player-status" class="status-tag">Основной состав</span></div><div class="player-overall"><strong id="player-overall">60</strong><small>ОБЩИЙ РЕЙТИНГ</small></div></div>
+          <div class="player-metrics" id="player-metrics"></div>
+          <div class="player-train-head"><div><h3>ИНДИВИДУАЛЬНЫЕ ТРЕНИРОВКИ</h3><p class="fine">Зарабатывай очки в матчах и улучшай своего футболиста.</p></div><strong class="training-points" id="training-points">3 ОЧКА</strong></div>
+          <div class="skill-grid" id="player-skills"></div>
+          <div class="career-actions player-actions"><button class="primary" data-go="match">▶ ВЫЙТИ НА ПОЛЕ</button><button id="player-rest">ВОССТАНОВЛЕНИЕ</button></div>
+          <p id="player-feedback" class="fine">В этом режиме ты управляешь только своим футболистом. Остальной командой управляет ИИ.</p>
+        </div>
+        <aside class="player-sidebar"><p class="eyebrow">АГЕНТ И КОНТРАКТ</p><h3>МОЯ КАРЬЕРА</h3><p id="player-contract" class="fine"></p><div id="player-offers" class="offers"></div><hr><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="player-news" class="fine"></div></aside>
+      </div>
     </section>
     <section id="tactics" class="screen panel-screen tactics-screen">
       <div class="page-head compact"><p class="eyebrow">ПЕРСОНАЛЬНЫЕ УКАЗАНИЯ</p><h2>ТАКТИЧЕСКАЯ ДОСКА</h2><p>Выбери игрока и проведи пальцем по полю, чтобы нарисовать маршрут.</p></div>
@@ -94,7 +105,18 @@
     </section>
     <section id="match" class="screen panel-screen match-screen">
       <div class="match-top"><div><p class="eyebrow">СИМУЛЯЦИЯ · ПРОТОТИП</p><strong id="match-fixture">ФК Аврора — ФК Север</strong></div><div class="score"><strong id="match-score">0 : 0</strong><span id="match-minute">00'</span></div><button id="end-match">ЗАВЕРШИТЬ ПРОСМОТР</button></div>
-      <div class="match-grid"><div class="match-pitch"><canvas id="match-canvas" width="1000" height="590" aria-label="Симуляция футбольного матча 11 на 11"></canvas></div><aside class="match-aside"><p class="eyebrow">ТРЕНЕРСКАЯ ПАНЕЛЬ</p><label for="match-formation">СМЕНИТЬ СХЕМУ</label><select id="match-formation"><option value="433">4-3-3</option><option value="442">4-4-2</option><option value="343">3-4-3</option></select><label for="match-speed">СКОРОСТЬ</label><select id="match-speed"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select><button id="match-pause">ПАУЗА</button><button id="match-edit">ИЗМЕНИТЬ ТАКТИКУ</button><div id="match-events" class="events" aria-live="polite"></div></aside></div>
+      <div class="match-grid"><div class="match-pitch"><canvas id="match-canvas" width="1000" height="590" aria-label="Футбольный матч 11 на 11"></canvas></div>
+        <aside id="coach-match-panel" class="match-aside"><p class="eyebrow">ТРЕНЕРСКАЯ ПАНЕЛЬ</p><label for="match-formation">СМЕНИТЬ СХЕМУ</label><select id="match-formation"><option value="433">4-3-3</option><option value="442">4-4-2</option><option value="343">3-4-3</option></select><label for="match-speed">СКОРОСТЬ</label><select id="match-speed"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select><button id="match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button><button id="match-edit">ИЗМЕНИТЬ ТАКТИКУ</button><div id="match-events" class="events" aria-live="polite"></div></aside>
+        <aside id="player-match-panel" class="match-aside player-match-aside" hidden>
+          <p class="eyebrow">КАРЬЕРА ФУТБОЛИСТА</p><strong id="player-match-name">ИГРОК №9</strong>
+          <p id="player-match-hud" class="fine">Голы: 0 · Передачи: 0</p>
+          <div id="touch-pad" aria-label="Джойстик движения" role="group"><div id="touch-stick"></div><span>ДВИЖЕНИЕ</span></div>
+          <div class="player-match-buttons"><button id="player-pass" class="pass-btn">ПАС</button><button id="player-shoot" class="shoot-btn">УДАР</button><button id="player-tackle" class="tackle-btn">ОТБОР</button><button id="player-call" class="call-btn">ПОПРОСИТЬ ПАС</button></div>
+          <p class="fine match-help">На ПК: WASD/стрелки — движение, J — пас, K — удар, L — отбор, R — попросить пас.</p>
+          <button id="player-match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button>
+          <div id="player-match-events" class="events" aria-live="polite"></div>
+        </aside>
+      </div>
     </section>
     <section id="stats" class="screen panel-screen"><div class="page-head"><p class="eyebrow">ИСТОРИЯ</p><h2>СТАТИСТИКА</h2><p>Статистика твоих локальных карьер.</p></div><div id="stats-list" class="save-list"></div></section>
     <section id="settings" class="screen panel-screen"><div class="page-head"><p class="eyebrow">ПАРАМЕТРЫ</p><h2>НАСТРОЙКИ</h2></div><div class="form-card"><label><input type="checkbox" id="reduce-motion"> Минимум фоновых анимаций</label><label><input type="checkbox" id="show-numbers" checked> Показывать номера игроков</label><p class="fine">Для мобильных устройств рекомендуется альбомная ориентация экрана. Настройки сохраняются локально.</p></div></section>
