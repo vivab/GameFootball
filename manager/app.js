@@ -235,7 +235,7 @@ function finishMatch(record){
 }
 function frame(now){
  const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));lastFrame=now;
- if(match&&!match.paused&&screen==="match"){step(dt*match.speed);drawMatch()}
+ if(match&&!match.paused&&screen==="match"){step(dt*match.speed);if(match)drawMatch()}
  else if(match&&screen==="match")drawMatch();
  raf=requestAnimationFrame(frame);
 }
@@ -264,9 +264,11 @@ function step(dt){
    // Route endpoints bias positioning only, while the player maintains formation.
    if(team===0){
     const w=active(),route=w&&w.routes["attack-"+p.number];
-    if(route&&route.length&&m.owner&&m.owner.team===0){const q=route[route.length-1];gx=gx*.88+(q[1]*520+35)*.12;gy=gy*.88+(q[0]*900+50)*.12}
+    if(route&&route.length&&m.owner&&m.owner.team===0){const q=route[route.length-1];gx=gx*.88+((1-q[1])*900+50)*.12;gy=gy*.88+(q[0]*520+35)*.12}
    }
-   move(p,gx,gy,dt,i===0?55:100);
+   const ins=team===0?(active()?.instructions[p.number]||{}):{};
+   const speed=i===0?55:(ins.pressing==="high"?119:ins.pressing==="low"?85:100);
+   move(p,gx,gy,dt,speed);
   }
  }
  const owner=m.owner&& (m.owner.team===0?m.home:m.away)[m.owner.idx];
@@ -275,7 +277,7 @@ function step(dt){
  if(m.actionTimer<=0){performAction();m.actionTimer=.85+Math.random()*1.7}
  m.eventsTimer-=dt;
  if(m.eventsTimer<=0){m.eventsTimer=4+Math.random()*9;incident()}
- if(m.elapsed>=2700&&!m.halftime){m.halftime=true;addEvent("Перерыв. Можно менять тактику.")}
+ if(m.elapsed>=2700&&!m.halftime){m.halftime=true;m.paused=true;$("match-pause").textContent="НАЧАТЬ 2-Й ТАЙМ";addEvent("Перерыв. Матч остановлен для тренерских решений.")}
  if(m.elapsed>=5400){addEvent("Финальный свисток.");finishMatch(true);return}
  updateScore();
 }
@@ -292,7 +294,11 @@ function performAction(){
   updateScore();return;
  }
  if(Math.random()<.16){m.owner={team:1-team,idx:1+Math.floor(Math.random()*10)};addEvent("Перехват передачи.");return}
- const candidates=players.map((p,i)=>({p,i,score:(team===0?p.x:-p.x)+Math.random()*180-((i===idx)?600:0)})).filter(x=>x.i>0&&x.i!==idx);
+ const passing=team===0?(active()?.instructions[ballCarrier.number]?.passing||"mixed"):"mixed";
+ const candidates=players.map((p,i)=>{const distance=Math.hypot(p.x-ballCarrier.x,p.y-ballCarrier.y);let score=(team===0?p.x:-p.x)+Math.random()*180;
+  if(passing==="short")score-=distance*1.7;
+  if(passing==="long")score+=distance*.55;
+  return {p,i,score};}).filter(x=>x.i>0&&x.i!==idx);
  candidates.sort((a,b)=>b.score-a.score);
  m.owner={team,idx:candidates[Math.floor(Math.random()*Math.min(4,candidates.length))].i};
  if(Math.random()<.18)addEvent("Быстрая передача и смена направления атаки.");
