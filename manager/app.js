@@ -711,13 +711,37 @@ function step(dt){
    move(p,gx,gy,dt,speed);
   }
  }
- const owner=m.owner&& (m.owner.team===0?m.home:m.away)[m.owner.idx];
- if(owner){m.ball.x+=(owner.x-m.ball.x)*Math.min(1,dt*9);m.ball.y+=(owner.y-m.ball.y)*Math.min(1,dt*9)}
- m.actionTimer-=dt;
- if(m.actionTimer<=0){
-  if(!(m.playerMode&&m.owner?.team===0&&m.owner.idx===m.controlIdx))performAction();
-  m.actionTimer=.85+Math.random()*1.7;
+ if(m.coachNetHold>0){
+  advanceBall(m.ball,dt);m.coachNetHold-=dt;
+  if(m.coachNetHold<=0){
+   m.ball={x:500,y:295,vx:0,vy:0,inNet:null};
+   m.owner={team:m.coachConceded,idx:9};
+   m.coachConceded=null;m.coachShotTeam=null;
+  }
+  updateScore();return;
  }
+ const owner=m.owner&&(m.owner.team===0?m.home:m.away)[m.owner.idx];
+ if(owner){
+  m.ball.x+=(owner.x-m.ball.x)*Math.min(1,dt*8);
+  m.ball.y+=(owner.y-m.ball.y)*Math.min(1,dt*8);
+ }else{
+  const goal=advanceBall(m.ball,dt);
+  if(goal){
+   const team=goal==="right"?0:1;
+   m.score[team]++;m.coachConceded=1-team;m.coachNetHold=1.5;
+   addEvent("ГОЛ! Мяч пересёк линию ворот и попал в сетку!");
+   updateScore();return;
+  }
+  m.coachBallRecover=Math.max(0,(m.coachBallRecover||0)-dt);
+  if(m.coachBallRecover<=0&&Math.hypot(m.ball.vx,m.ball.vy)<190){
+   const nearby=[...m.home.map((p,i)=>({team:0,idx:i,p})),...m.away.map((p,i)=>({team:1,idx:i,p}))]
+    .map(c=>({...c,d:Math.hypot(c.p.x-m.ball.x,c.p.y-m.ball.y)}))
+    .sort((a,b)=>a.d-b.d)[0];
+   if(nearby?.d<34)m.owner={team:nearby.team,idx:nearby.idx};
+  }
+ }
+ m.actionTimer-=dt;
+ if(m.owner&&m.actionTimer<=0){performAction();m.actionTimer=.85+Math.random()*1.7}
  m.eventsTimer-=dt;
  if(m.eventsTimer<=0){m.eventsTimer=4+Math.random()*9;incident()}
  if(m.elapsed>=2700&&!m.halftime){m.halftime=true;m.paused=true;
@@ -734,15 +758,14 @@ function performAction(){
  // Attack progresses through passes to teammates, with occasional interceptions.
  const dist=team===0?1000-ballCarrier.x:ballCarrier.x;
  if(dist<230&&Math.random()<.68){
-  const onTarget=Math.random()<.47;
-  if(onTarget&&Math.random()<.35){
-   m.score[team]++;
-   if(m.playerMode&&team===0&&m.assistPending){m.individual.assists++;addEvent("Голевая передача твоего футболиста!");}
-   addEvent("ГОЛ! Точный удар команды "+(team===0?"хозяев":"гостей")+"!");
-   m.owner={team:1-team,idx:9};m.assistPending=false;updatePlayerHUD();
-  }
-  else{addEvent(onTarget?"Вратарь отражает удар!":"Удар рядом с воротами. Удар от ворот.");m.owner={team:1-team,idx:Math.floor(1+Math.random()*10)};m.assistPending=false;}
-  updateScore();return;
+  const onTarget=Math.random()<.53;
+  const targetY=onTarget?295+(Math.random()-.5)*45:(Math.random()<.5?FIELD.goalTop-42:FIELD.goalBottom+42);
+  const targetX=team===0?FIELD.right+FIELD.netDepth:FIELD.left-FIELD.netDepth;
+  const direction=normalizeDirection({x:targetX-ballCarrier.x,y:targetY-ballCarrier.y});
+  shootBall(m.ball,ballCarrier,direction,380);
+  m.owner=null;m.coachBallRecover=.45;m.coachShotTeam=team;
+  addEvent("Удар по воротам! Мяч летит к сетке.");
+  return;
  }
  if(Math.random()<.16){m.owner={team:1-team,idx:1+Math.floor(Math.random()*10)};m.assistPending=false;addEvent("Перехват передачи.");return}
  const passing=team===0?(active()?.instructions[ballCarrier.number]?.passing||"mixed"):"mixed";
