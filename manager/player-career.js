@@ -14,10 +14,10 @@ const LEVEL_SIZE=100;
 
 
 export function positionIndex(position){
-  return position==="CB"?2:position==="CM"?6:9;
+  return position==="GK"?0:position==="CB"?2:position==="CM"?6:9;
 }
 export function positionLabel(position){
-  return {ST:"Нападающий",CM:"Полузащитник",CB:"Защитник"}[position]||"Нападающий";
+  return {ST:"Нападающий",CM:"Полузащитник",CB:"Защитник",GK:"Вратарь"}[position]||"Нападающий";
 }
 export function makePlayerProfile(name,mode,position="ST"){
   const preset=mode==="real"?REAL_PRESETS[name]:null;
@@ -38,7 +38,7 @@ export function ensurePlayerProfile(world){
     if(!Number.isFinite(p[key]))p[key]=fallback;
   }
   if(!Array.isArray(p.offers))p.offers=[];
-  if(!["ST","CM","CB"].includes(p.position))p.position="ST";
+  if(!["ST","CM","CB","GK"].includes(p.position))p.position="ST";
   return p;
 }
 export function playerOverall(p){
