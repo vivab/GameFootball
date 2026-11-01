@@ -1,5 +1,6 @@
 import {PLAYER_SKILLS,makePlayerProfile,ensurePlayerProfile,playerOverall,training,matchProgress,availableOffers,acceptOffer,positionIndex,positionLabel,xpLevel} from "./player-career.js";
 import {FIELD,createMoments,normalizeDirection,shootBall,advanceBall,simulateMoment,randomGapScore} from "./highlights.js";
+import {initWorldUI} from "./world-ui.js";
 
 "use strict";
 const $ = id => document.getElementById(id);
@@ -19,6 +20,11 @@ let previewTactics={formation:"433",routes:{},instructions:{}};
 let match=null, raf=0, lastFrame=0, saveIdDuringMatch=null, returnFromTactics="career";
 const movementKeys=new Set();
 let joystick={x:0,y:0},joystickActive=false,lastAim={x:1,y:0};
+const worldUI=initWorldUI({onChooseClub:(club)=>{
+ chooseType("coach");
+ worldUI.setCreateSelectedClub(club.id);
+ toast("Клуб выбран: "+club.name);
+}});
 function readJSON(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch{return fallback}}
 function store(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(saves))}catch{toast("Не удалось сохранить: браузер ограничивает хранилище")}}
 function storePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs))}catch{}}
@@ -35,6 +41,8 @@ function go(target){
  if(target==="career")renderCareer();
  if(target==="tactics")openTactics();
  if(target==="stats")renderStats();
+ if(target==="world")worldUI.openWorld().catch(e=>toast("Ошибка каталога: "+e.message));
+ if(target==="create")worldUI.openCreate(createMode).catch(e=>toast("Ошибка списка клубов: "+e.message));
  if(target==="match"&&!match)beginMatch();
  if(target==="match"&&match){if(!match.playerMode||["manual","net"].includes(match.highlightState))match.paused=false;lastFrame=performance.now()}
  updateHeader();
@@ -44,7 +52,7 @@ document.querySelectorAll("[data-go]").forEach(el=>el.addEventListener("click",(
 $("back-btn").addEventListener("click",()=>{
  if(screen==="tactics"){go(returnFromTactics);return}
  if(screen==="match"&&match){finishMatch(false);return}
- const destinations={play:"home",new:"play",create:"new",saves:"play",career:"saves",stats:"home",settings:"home"};
+ const destinations={play:"home",new:"play",create:"new",saves:"play",career:"saves",world:"home",stats:"home",settings:"home"};
  go(destinations[screen]||"home");
 });
 document.querySelectorAll("[data-type]").forEach(el=>el.addEventListener("click",()=>chooseType(el.dataset.type)));
@@ -66,12 +74,32 @@ function chooseType(type){
 }
 $("world-form").addEventListener("submit",e=>{
  e.preventDefault();
+ const real=createMode==="real"?worldUI.getSelectedRealPlayer():null;
  const chosen=$("real-select").value;
- const name=createMode==="real"?chosen:$("entry-name").value.trim();
+ const name=createMode==="real"?(real?.name||chosen):$("entry-name").value.trim();
  const club=$("entry-club").value.trim();
  if(!name||!club){toast("Заполни имя и название клуба");return}
  const w={id:String(Date.now())+"-"+Math.random().toString(36).slice(2,7),mode:createMode,name,club,season:2026,played:0,wins:0,draws:0,losses:0,goalsFor:0,goalsAgainst:0,formation:"433",routes:{},instructions:{},events:[],createdAt:Date.now()};
- if(createMode!=="coach")w.player=makePlayerProfile(name,createMode,$("entry-position").value);
+ const chosenClub=worldUI.getSelectedClub();
+ if(chosenClub){w.worldClubId=chosenClub.id;w.worldLeagueId=worldUI.getSelectedLeague();w.clubDataYear="league season / World Cup 2026 snapshot"}
+ if(createMode!=="coach"){
+  const playablePos=real?({GK:"GK",DF:"CB",MF:"CM",FW:"ST"}[real.pos]||"ST"):$("entry-position").value;
+  w.player=makePlayerProfile(name,createMode,playablePos);
+  if(real){
+   w.worldPlayerId=real.id;
+   w.worldPlayerSource="World Cup 2026";w.skillRatingIsGameEstimate=true;
+   const birthday=new Date(real.birthdate+"T00:00:00Z");
+   if(Number.isFinite(birthday.getTime())){
+    let age=2026-birthday.getUTCFullYear();
+    if(birthday.getUTCMonth()>10||(birthday.getUTCMonth()===10&&birthday.getUTCDate()>2))age--;
+    w.player.age=Math.max(16,Math.min(55,age));
+   }
+   w.player.position=playablePos;
+   w.player.number=real.number||w.player.number;
+   w.player.numberSource="national squad, not club";
+   w.worldClubId=chosenClub?.id||real.clubId;
+  }
+ }
  saves.unshift(w);activeId=w.id;store();go("career");toast("Новый футбольный мир создан");
 });
 function renderSaves(){
@@ -105,6 +133,7 @@ function renderCareer(){
  $("career-figures").replaceChildren();
  for(const [label,value] of figures){const div=document.createElement("div");div.className="figure";const a=document.createElement("strong");a.textContent=value;const b=document.createElement("span");b.textContent=label;div.append(a,b);$("career-figures").append(div)}
  $("career-about").textContent="Голы: "+w.goalsFor+"–"+w.goalsAgainst+". Ты управляешь командой, а не отдельным футболистом. Выбирай схему и маршруты на тактической доске.";
+ $("career-world-note").textContent=worldUI.getCareerNote(w);
  $("career-news").textContent=w.events?.length?w.events.slice(0,4).join(" · "):"Твоя история только начинается. Проведи первый матч!";
 }
 function renderPlayerDashboard(w){
@@ -146,6 +175,7 @@ function renderPlayerDashboard(w){
  $("player-feedback").textContent="Форма: "+p.fitness+"% · Доверие тренера: "+p.trust+"% · Опыт: "+p.experience+" XP. На поле ты управляешь только своим футболистом.";
  $("player-contract").textContent="Контракт: ещё "+p.contractMatches+" матчей · Доверие тренера: "+p.trust+"%. Клубом и составом распоряжается ИИ-тренер.";
  $("player-news").textContent=w.events?.length?w.events.slice(0,5).join(" · "):"Дебют впереди. Прояви себя в первом матче!";
+ $("player-world-note").textContent=worldUI.getCareerNote(w)+(w.worldPlayerSource?" · Возраст и исторический клуб взяты из ЧМ-2026. Рейтинг условный, создан для игрового баланса.":"");
  const offers=availableOffers(w);$("player-offers").replaceChildren();
  if(!offers.length){
   const note=document.createElement("p");note.className="fine";
