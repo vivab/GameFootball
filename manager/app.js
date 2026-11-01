@@ -550,8 +550,129 @@ function move(p,x,y,dt,speed){
  if(d>1){const m=Math.min(d,dt*speed);p.x+=dx/d*m;p.y+=dy/d*m}
  p.x=bound(p.x,34,966);p.y=bound(p.y,34,556);
 }
+
+function stepHighlight(dt){
+ const m=match;
+ if(!m?.playerMode||m.paused||screen!=="match")return;
+ dt=Math.min(.05,Math.max(0,dt));
+ if(m.highlightState==="net"){
+  advanceBall(m.ball,dt);
+  m.netHold-=dt;
+  if(m.netHold<=0)nextMoment(m.lastGoalMessage||"Гол!");
+  return;
+ }
+ if(m.highlightState!=="manual")return;
+ m.elapsed+=dt;m.secondsRemaining=Math.max(0,m.secondsRemaining-dt);
+ const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
+ const pressed=k=>movementKeys.has(k);
+ let dx=joystick.x+Number(pressed("d")||pressed("arrowright"))-Number(pressed("a")||pressed("arrowleft"));
+ let dy=joystick.y+Number(pressed("s")||pressed("arrowdown"))-Number(pressed("w")||pressed("arrowup"));
+ let len=Math.hypot(dx,dy);
+ if(len>.08){
+  dx/=Math.max(1,len);dy/=Math.max(1,len);
+  lastAim=normalizeDirection({x:dx,y:dy},lastAim);
+  const speed=(88+profile.skills.pace*.75)*(.65+.35*profile.fitness/100);
+  p.x=bound(p.x+dx*speed*dt,FIELD.left+15,FIELD.right-15);
+  p.y=bound(p.y+dy*speed*dt,FIELD.top+15,FIELD.bottom-15);
+ }
+ // Teammates and opponents continue to move under AI, while the user controls exactly one player.
+ for(const [team,players] of [[0,m.home],[1,m.away]]){
+  for(let i=0;i<players.length;i++){
+   if(team===0&&i===m.controlIdx)continue;
+   const q=players[i];
+   if(i===0){
+    const gx=team===0?FIELD.left+23:FIELD.right-23;
+    move(q,gx,295+(m.ball.y-295)*.17,dt,110);
+    continue;
+   }
+   const owner=Boolean(m.owner&&m.owner.team===team&&m.owner.idx===i);
+   let tx=q.x,ty=q.y;
+   if(owner){
+    tx=q.x+(team===0?90:-85)*dt;
+   }else if(team===0){
+    tx=bound(p.x-85+(i%4)*43,FIELD.left+65,FIELD.right-55);
+    ty=bound(p.y+(i%5-2)*61,FIELD.top+35,FIELD.bottom-35);
+   }else{
+    tx=bound(m.ball.x+55+(i%3)*42,FIELD.left+45,FIELD.right-70);
+    ty=bound(m.ball.y+(i%4-2)*45,FIELD.top+35,FIELD.bottom-35);
+   }
+   move(q,tx,ty,dt,owner?85:60);
+  }
+ }
+ if(m.owner){
+  const holder=(m.owner.team===0?m.home:m.away)[m.owner.idx];
+  const dir=m.owner.team===0?1:-1;
+  m.ball.x=holder.x+dir*14;m.ball.y=holder.y;
+  m.ball.vx=0;m.ball.vy=0;
+  if(m.owner.team===0&&m.owner.idx!==m.controlIdx){
+   m.aiTimer+=dt;
+   if(m.aiTimer>1.55){
+    m.aiTimer=0;
+    if(holder.x>765){
+     const aim=normalizeDirection({x:FIELD.right-holder.x,y:295-holder.y});
+     shootBall(m.ball,holder,aim,370);
+     m.lastShooter={team:0,idx:m.owner.idx};
+     m.lastKick="shot";m.owner=null;m.ballRecover=.3;
+     addEvent("Партнёр пробил по воротам.");
+    }else{
+     const aim=normalizeDirection({x:p.x-holder.x,y:p.y-holder.y});
+     shootBall(m.ball,holder,aim,270);
+     m.lastShooter=null;m.lastKick="teammate-pass";
+     m.owner=null;m.ballRecover=.22;
+    }
+   }
+  }else if(m.owner.team===1){
+   m.aiTimer+=dt;
+   if(m.aiTimer>1.8){
+    m.aiTimer=0;
+    const aim=normalizeDirection({x:FIELD.left-holder.x,y:295-holder.y});
+    shootBall(m.ball,holder,aim,350);
+    m.lastShooter={team:1,idx:m.owner.idx};
+    m.owner=null;m.lastKick="shot";m.ballRecover=.35;
+   }
+  }else m.aiTimer=0;
+ }else{
+  m.ballRecover=Math.max(0,(m.ballRecover||0)-dt);
+  const goal=advanceBall(m.ball,dt);
+  if(goal){
+   const scored=goal==="right"?0:1;
+   m.score[scored]++;
+   if(scored===0&&m.lastShooter?.team===0&&m.lastShooter.idx===m.controlIdx){
+    m.individual.goals++;m.lastGoalMessage="ГОЛ! Ты сам забил мяч в настоящие ворота!";
+   }else if(scored===0){
+    if(m.assistPending){m.individual.assists++;m.assistPending=false;}
+    m.lastGoalMessage="ГОЛ! Команда завершила атаку.";
+   }else m.lastGoalMessage="Гол соперника.";
+   addEvent(m.lastGoalMessage);
+   m.highlightState="net";m.netHold=1.6;
+   setMomentUI("net");$("moment-info").hidden=false;$("moment-timer").textContent="ГОЛ!";
+   updateScore();updatePlayerHUD();return;
+  }
+  if(m.ballRecover<=0&&Math.hypot(m.ball.vx,m.ball.vy)<280){
+   const contenders=[
+    {team:0,idx:m.controlIdx,p:m.home[m.controlIdx]},
+    ...m.home.map((q,i)=>({team:0,idx:i,p:q})).filter(c=>c.idx!==m.controlIdx),
+    ...m.away.map((q,i)=>({team:1,idx:i,p:q}))
+   ];
+   const nearest=contenders.map(c=>({...c,d:Math.hypot(c.p.x-m.ball.x,c.p.y-m.ball.y)})).sort((a,b)=>a.d-b.d)[0];
+   if(nearest?.d<22){
+    m.owner={team:nearest.team,idx:nearest.idx};
+    m.ball.vx=0;m.ball.vy=0;m.aiTimer=0;
+   }
+  }
+ }
+ if(m.secondsRemaining<=0){
+  addEvent("Момент закончился. Остальное время симулируется.");
+  nextMoment("Время эпизода закончилось.");
+  return;
+ }
+ $("moment-timer").textContent=Math.ceil(m.secondsRemaining)+" СЕК.";
+ updateScore();updatePlayerHUD();
+}
+
 function step(dt){
  if(!match)return;
+ if(match.playerMode){stepHighlight(dt);return}
  const m=match;m.elapsed=Math.min(5400,m.elapsed+dt*52);
  if(m.playerMode){
   const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
