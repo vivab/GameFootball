@@ -764,30 +764,85 @@ function incident(){
  else if(dice<.91){addEvent("Угловой. Игроки занимают места в штрафной.");}
  else{addEvent("Игрок получил повреждение. Врач осматривает футболиста.")}
 }
+function drawGoalNet(ctx,side){
+ const x=side==="left"?FIELD.left-FIELD.netDepth:FIELD.right;
+ const width=FIELD.netDepth,top=FIELD.goalTop,bottom=FIELD.goalBottom;
+ ctx.fillStyle="#dceee932";ctx.fillRect(x,top,width,bottom-top);
+ ctx.strokeStyle="#ebfbf0ab";ctx.lineWidth=1;
+ for(let gx=x+8;gx<x+width;gx+=8){
+  ctx.beginPath();ctx.moveTo(gx,top);ctx.lineTo(gx,bottom);ctx.stroke();
+ }
+ for(let gy=top+9;gy<bottom;gy+=9){
+  ctx.beginPath();ctx.moveTo(x,gy);ctx.lineTo(x+width,gy);ctx.stroke();
+ }
+ ctx.strokeStyle="#fffefa";ctx.lineWidth=3;
+ ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x+width,top);
+ ctx.lineTo(x+width,bottom);ctx.lineTo(x,bottom);ctx.stroke();
+ const front=side==="left"?FIELD.left:FIELD.right;
+ for(const y of [top,bottom]){
+  ctx.beginPath();ctx.fillStyle="#fbfff7";ctx.arc(front,y,4.5,0,Math.PI*2);ctx.fill();
+ }
+}
 function drawMatch(){
- const cv=$("match-canvas"),ctx=cv.getContext("2d"),W=cv.width,H=cv.height,m=match;if(!m)return;
- ctx.fillStyle="#246f3b";ctx.fillRect(0,0,W,H);
- for(let x=0;x<10;x++){ctx.fillStyle=x%2?"#ffffff09":"#0000000b";ctx.fillRect(x*100,0,100,H)}
- ctx.strokeStyle="#d7f0d8cc";ctx.lineWidth=2;ctx.strokeRect(20,20,960,550);
- ctx.beginPath();ctx.moveTo(500,20);ctx.lineTo(500,570);ctx.stroke();
- ctx.beginPath();ctx.arc(500,295,75,0,Math.PI*2);ctx.stroke();
- ctx.strokeRect(20,165,130,260);ctx.strokeRect(850,165,130,260);
- ctx.strokeRect(20,223,52,145);ctx.strokeRect(928,223,52,145);
- ctx.fillStyle="#e3eddf";ctx.fillRect(7,247,13,96);ctx.fillRect(980,247,13,96);
+ const cv=$("match-canvas"),ctx=cv.getContext("2d"),W=cv.width,H=cv.height,m=match;
+ if(!m)return;
+ ctx.clearRect(0,0,W,H);
+ ctx.fillStyle="#246b36";ctx.fillRect(0,0,W,H);
+ for(let x=0;x<10;x++){
+  ctx.fillStyle=x%2?"#ffffff08":"#0000000b";
+  ctx.fillRect(x*100,0,100,H);
+ }
+ drawGoalNet(ctx,"left");drawGoalNet(ctx,"right");
+ const L=FIELD.left,R=FIELD.right,T=FIELD.top,B=FIELD.bottom;
+ ctx.strokeStyle="#d7f0d8d9";ctx.lineWidth=2;
+ ctx.strokeRect(L,T,R-L,B-T);
+ ctx.beginPath();ctx.moveTo(500,T);ctx.lineTo(500,B);ctx.stroke();
+ ctx.beginPath();ctx.arc(500,295,69,0,Math.PI*2);ctx.stroke();
+ ctx.strokeRect(L,170,134,250);ctx.strokeRect(R-134,170,134,250);
+ ctx.strokeRect(L,231,48,128);ctx.strokeRect(R-48,231,48,128);
+ for(const x of [L+95,R-95]){
+  ctx.beginPath();ctx.fillStyle="#f3fff3";ctx.arc(x,295,3,0,Math.PI*2);ctx.fill();
+ }
+ const arrow=Boolean(m.playerMode&&m.highlightState==="manual"),control=m.home[m.controlIdx];
+ if(arrow){
+  const aim=currentAim(),distance=75;
+  ctx.strokeStyle="#ffe16d";ctx.fillStyle="#ffe16d";ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(control.x,control.y);ctx.lineTo(control.x+aim.x*distance,control.y+aim.y*distance);ctx.stroke();
+  const ex=control.x+aim.x*distance,ey=control.y+aim.y*distance;
+  ctx.beginPath();ctx.moveTo(ex,ey);
+  ctx.lineTo(ex-aim.x*11-aim.y*7,ey-aim.y*11+aim.x*7);
+  ctx.lineTo(ex-aim.x*11+aim.y*7,ey-aim.y*11-aim.x*7);ctx.closePath();ctx.fill();
+ }
  for(const [team,list] of [[0,m.home],[1,m.away]]){
   for(const p of list){
-   if(m.playerMode&&team===0&&p===m.home[m.controlIdx]){
-    ctx.beginPath();ctx.strokeStyle="#ffe17b";ctx.lineWidth=4;ctx.arc(p.x,p.y,17,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle="#ffe17b";ctx.beginPath();ctx.moveTo(p.x-6,p.y-24);ctx.lineTo(p.x+6,p.y-24);ctx.lineTo(p.x,p.y-17);ctx.fill();
+   const isUser=m.playerMode&&team===0&&p===control;
+   if(isUser){
+    ctx.beginPath();ctx.strokeStyle="#ffe16d";ctx.lineWidth=3.5;
+    ctx.arc(p.x,p.y,21,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle="#ffe16d";ctx.beginPath();ctx.moveTo(p.x-7,p.y-29);
+    ctx.lineTo(p.x+7,p.y-29);ctx.lineTo(p.x,p.y-21);ctx.closePath();ctx.fill();
    }
-   ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle="#0005";ctx.beginPath();ctx.ellipse(0,13,11,5,0,0,Math.PI*2);ctx.fill();
-   ctx.strokeStyle=team===0?"#eef4ff":"#e8bdc3";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-4,7);ctx.lineTo(-5,13);ctx.moveTo(4,7);ctx.lineTo(5,13);ctx.stroke();
-   ctx.beginPath();ctx.fillStyle=team===0?"#eef3fb":"#b53140";ctx.strokeStyle=team===0?"#204db5":"#f1dee1";ctx.lineWidth=2;ctx.arc(0,0,10,0,Math.PI*2);ctx.fill();ctx.stroke();
-   if(prefs.showNumbers){ctx.fillStyle=team===0?"#153884":"white";ctx.font="bold 9px system-ui";ctx.textAlign="center";ctx.fillText(p.number,0,3)}
+   ctx.save();ctx.translate(p.x,p.y);
+   ctx.fillStyle="#0006";ctx.beginPath();ctx.ellipse(0,14,11,4,0,0,Math.PI*2);ctx.fill();
+   const kit=team===0?"#e9efff":"#bc3549";
+   const trim=team===0?"#2756a3":"#f3e1e5";
+   ctx.strokeStyle=team===0?"#dfeaf9":"#e1b1b8";ctx.lineWidth=4;
+   ctx.beginPath();ctx.moveTo(-4,7);ctx.lineTo(-6,14);ctx.moveTo(4,7);ctx.lineTo(6,14);ctx.stroke();
+   ctx.fillStyle=kit;ctx.strokeStyle=trim;ctx.lineWidth=2;
+   ctx.beginPath();ctx.ellipse(0,1,10,12,0,0,Math.PI*2);ctx.fill();ctx.stroke();
+   ctx.beginPath();ctx.fillStyle="#d4a687";ctx.arc(0,-9,4.5,0,Math.PI*2);ctx.fill();
+   if(prefs.showNumbers){
+    ctx.fillStyle=team===0?"#193e75":"#fff";
+    ctx.font="bold 9px system-ui";ctx.textAlign="center";ctx.fillText(p.number,0,5);
+   }
    ctx.restore();
   }
  }
- ctx.fillStyle="#fff";ctx.strokeStyle="#172b27";ctx.lineWidth=2;ctx.beginPath();ctx.arc(m.ball.x,m.ball.y,5.2,0,Math.PI*2);ctx.fill();ctx.stroke();
+ // Draw the ball last, including beyond the goal line inside the net.
+ ctx.fillStyle="#0008";ctx.beginPath();ctx.ellipse(m.ball.x+2,m.ball.y+3,7,4,0,0,Math.PI*2);ctx.fill();
+ ctx.beginPath();ctx.fillStyle="#fff";ctx.strokeStyle="#15251d";ctx.lineWidth=1.7;
+ ctx.arc(m.ball.x,m.ball.y,FIELD.radius,0,Math.PI*2);ctx.fill();ctx.stroke();
+ ctx.beginPath();ctx.fillStyle="#12261c";ctx.arc(m.ball.x,m.ball.y,2,0,Math.PI*2);ctx.fill();
 }
 window.addEventListener("resize",()=>{if(screen==="tactics")drawBoard()});
 window.addEventListener("keydown",e=>{
