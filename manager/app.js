@@ -1,3 +1,4 @@
+import {PLAYER_SKILLS,makePlayerProfile,ensurePlayerProfile,playerOverall,training,matchProgress,availableOffers,acceptOffer,positionIndex,positionLabel,xpLevel} from "./player-career.js";
 
 "use strict";
 const $ = id => document.getElementById(id);
@@ -15,6 +16,8 @@ let activeId=null, screen="home", previous="home", createMode="coach";
 let selected=10, phase="attack", drawing=false, drawMoved=false, drawn=[];
 let previewTactics={formation:"433",routes:{},instructions:{}};
 let match=null, raf=0, lastFrame=0, saveIdDuringMatch=null, returnFromTactics="career";
+const movementKeys=new Set();
+let joystick={x:0,y:0},joystickActive=false;
 function readJSON(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch{return fallback}}
 function store(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(saves))}catch{toast("Не удалось сохранить: браузер ограничивает хранилище")}}
 function storePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs))}catch{}}
@@ -54,6 +57,10 @@ function chooseType(type){
  $("entry-club").value=type==="coach"?"ФК Аврора":"ФК Академия";
  $("club-label").textContent="Клуб в этом мире";
  $("real-select-wrap").hidden=!real;
+ $("position-wrap").hidden=type!=="custom";
+ $("entry-name").hidden=real;$("name-label").hidden=real;
+ $("entry-name").required=!real;
+ $("entry-position").value="ST";
  go("create");
 }
 $("world-form").addEventListener("submit",e=>{
@@ -63,6 +70,7 @@ $("world-form").addEventListener("submit",e=>{
  const club=$("entry-club").value.trim();
  if(!name||!club){toast("Заполни имя и название клуба");return}
  const w={id:String(Date.now())+"-"+Math.random().toString(36).slice(2,7),mode:createMode,name,club,season:2026,played:0,wins:0,draws:0,losses:0,goalsFor:0,goalsAgainst:0,formation:"433",routes:{},instructions:{},events:[],createdAt:Date.now()};
+ if(createMode!=="coach")w.player=makePlayerProfile(name,createMode,$("entry-position").value);
  saves.unshift(w);activeId=w.id;store();go("career");toast("Новый футбольный мир создан");
 });
 function renderSaves(){
@@ -83,26 +91,104 @@ function renderSaves(){
 }
 function renderCareer(){
  const w=active();if(!w){go("saves");return}
- $("career-type").textContent=w.mode==="coach"?"КАРЬЕРА ТРЕНЕРА":w.mode==="real"?"КАРЬЕРА ЗА РЕАЛЬНОГО ФУТБОЛИСТА":"КАРЬЕРА СОЗДАННОГО ИГРОКА";
+ const isCoach=w.mode==="coach";
+ $("coach-dashboard").hidden=!isCoach;
+ $("player-dashboard").hidden=isCoach;
+ $("career-type").textContent=isCoach?"КАРЬЕРА ТРЕНЕРА":w.mode==="real"?"КАРЬЕРА РЕАЛЬНОГО ФУТБОЛИСТА":"КАРЬЕРА СОЗДАННОГО ИГРОКА";
  $("career-name").textContent=w.name;
- $("career-meta").textContent=w.club+" · Сезон "+w.season+"/"+(w.season+1)+" · Схема "+formationName(w.formation);
+ $("career-meta").textContent=isCoach
+  ?w.club+" · Сезон "+w.season+"/"+(w.season+1)+" · Схема "+formationName(w.formation)
+  :w.club+" · Сезон "+w.season+"/"+(w.season+1)+" · Индивидуальная карьера";
+ if(!isCoach){renderPlayerDashboard(w);return}
  const figures=[["МАТЧИ",w.played],["ПОБЕДЫ",w.wins],["НИЧЬИ",w.draws],["ПОРАЖЕНИЯ",w.losses]];
  $("career-figures").replaceChildren();
  for(const [label,value] of figures){const div=document.createElement("div");div.className="figure";const a=document.createElement("strong");a.textContent=value;const b=document.createElement("span");b.textContent=label;div.append(a,b);$("career-figures").append(div)}
- $("career-about").textContent="Голы: "+w.goalsFor+"–"+w.goalsAgainst+". Каждая карьера имеет собственную историю. Турнирная таблица и реальные составы появятся в следующих версиях.";
- $("career-news").textContent=w.events.length?w.events.slice(0,4).join(" · "):"Твоя история только начинается. Проведи первый матч!";
+ $("career-about").textContent="Голы: "+w.goalsFor+"–"+w.goalsAgainst+". Ты управляешь командой, а не отдельным футболистом. Выбирай схему и маршруты на тактической доске.";
+ $("career-news").textContent=w.events?.length?w.events.slice(0,4).join(" · "):"Твоя история только начинается. Проведи первый матч!";
 }
+function renderPlayerDashboard(w){
+ const p=ensurePlayerProfile(w);
+ $("player-position").textContent=positionLabel(p.position);
+ $("player-details").textContent=w.name+" · "+p.age+" лет · № "+p.number+" · "+w.club;
+ $("player-status").textContent=p.careerStage||"Основной состав";
+ $("player-shirt-number").textContent=p.number;
+ $("player-overall").textContent=playerOverall(p);
+ const stats=[["МАТЧИ",p.appearances],["ГОЛЫ",p.goals],["ГОЛЕВЫЕ",p.assists],["УРОВЕНЬ",xpLevel(p)]];
+ $("player-metrics").replaceChildren();
+ for(const [label,value] of stats){
+  const cell=document.createElement("div");cell.className="figure";
+  const big=document.createElement("strong");big.textContent=value;
+  const small=document.createElement("span");small.textContent=label;cell.append(big,small);
+  $("player-metrics").append(cell);
+ }
+ $("training-points").textContent=p.skillPoints+" ОЧКА";
+ $("player-skills").replaceChildren();
+ for(const [skill,label] of PLAYER_SKILLS){
+  const el=document.createElement("div");el.className="skill-item";
+  const head=document.createElement("div");head.className="skill-head";
+  const name=document.createElement("span");name.textContent=label;
+  const rating=document.createElement("strong");rating.textContent=p.skills[skill];
+  head.append(name,rating);
+  const track=document.createElement("div");track.className="skill-track";
+  const fill=document.createElement("div");fill.className="skill-fill";fill.style.width=p.skills[skill]+"%";
+  track.append(fill);
+  const button=document.createElement("button");button.textContent="ТРЕНИРОВАТЬ +2";
+  button.disabled=p.skillPoints===0||p.skills[skill]>=99;
+  button.onclick=()=>{
+   const result=training(p,skill);
+   if(result.ok){store();renderPlayerDashboard(w)}
+   toast(result.ok?label+": "+result.message:result.message);
+  };
+  el.append(head,track,button);$("player-skills").append(el);
+ }
+ $("player-rest").disabled=p.lastRestAtPlayed===w.played||p.fitness>=100;
+ $("player-feedback").textContent="Форма: "+p.fitness+"% · Доверие тренера: "+p.trust+"% · Опыт: "+p.experience+" XP. На поле ты управляешь только своим футболистом.";
+ $("player-contract").textContent="Контракт: ещё "+p.contractMatches+" матчей · Доверие тренера: "+p.trust+"%. Клубом и составом распоряжается ИИ-тренер.";
+ $("player-news").textContent=w.events?.length?w.events.slice(0,5).join(" · "):"Дебют впереди. Прояви себя в первом матче!";
+ const offers=availableOffers(w);$("player-offers").replaceChildren();
+ if(!offers.length){
+  const note=document.createElement("p");note.className="fine";
+  note.textContent=p.appearances<3?"Новые предложения могут появиться после трёх матчей.":"Пока нет подходящих предложений.";
+  $("player-offers").append(note);
+ }else{
+  for(const offer of offers){
+   const card=document.createElement("div");card.className="offer";
+   const title=document.createElement("strong");title.textContent=offer.club;
+   const detail=document.createElement("small");detail.textContent=offer.label+" · демонстрационный контракт";
+   const button=document.createElement("button");button.textContent="ПЕРЕЙТИ В КЛУБ";
+   button.onclick=()=>{
+    if(!confirm("Принять предложение клуба «"+offer.club+"»?"))return;
+    if(acceptOffer(w,offer.club)){store();renderCareer();toast("Переход в "+offer.club+" оформлен")}
+   };
+   card.append(title,detail,button);$("player-offers").append(card);
+  }
+ }
+}
+$("player-rest").onclick=()=>{
+ const w=active();if(!w||w.mode==="coach")return;
+ const p=ensurePlayerProfile(w);
+ if(p.lastRestAtPlayed===w.played){toast("Восстановление уже использовано до следующего матча");return}
+ if(p.fitness>=100){toast("Форма уже максимальная");return}
+ p.fitness=Math.min(100,p.fitness+18);p.lastRestAtPlayed=w.played;
+ w.events.unshift("День восстановления: физическая форма "+p.fitness+"%");
+ store();renderPlayerDashboard(w);toast("Форма восстановлена");
+};
 function renderStats(){
  const box=$("stats-list");box.replaceChildren();
  if(!saves.length){box.innerHTML='<div class="empty">Статистика появится после создания карьеры.</div>';return}
- for(const w of saves){const el=document.createElement("div");el.className="save-row";el.textContent=w.name+" · "+w.played+" матчей · "+w.wins+" побед · Голы "+w.goalsFor+":"+w.goalsAgainst;box.append(el)}
+ for(const w of saves){
+  const el=document.createElement("div");el.className="save-row";
+  if(w.mode==="coach")el.textContent=w.name+" · Тренер · "+w.played+" матчей · "+w.wins+" побед · Голы "+w.goalsFor+":"+w.goalsAgainst;
+  else{const p=ensurePlayerProfile(w);el.textContent=w.name+" · Игрок · "+p.appearances+" матчей · "+p.goals+" голов · "+p.assists+" голевых передач · Рейтинг "+playerOverall(p)}
+  box.append(el);
+ }
 }
 $("reduce-motion").checked=!!prefs.reduceMotion;
 $("show-numbers").checked=prefs.showNumbers!==false;
 for(const id of ["reduce-motion","show-numbers"])$(id).onchange=()=>{prefs.reduceMotion=$("reduce-motion").checked;prefs.showNumbers=$("show-numbers").checked;storePrefs();toast("Настройки сохранены")};
 function formationName(key){return {"433":"4-3-3","442":"4-4-2","343":"3-4-3"}[key]||"4-3-3"}
 function positions(form){return FORMATIONS[form]||FORMATIONS["433"]}
-function tacticsData(){return active()||previewTactics}
+function tacticsData(){const w=active();return w?.mode==="coach"?w:previewTactics}
 function pointFor(number,form){
  const p=positions(form)[number-1];
  return {x:55+p[1]*540,y:48+(1-p[0])*660};
@@ -189,21 +275,127 @@ function initPlayers(form,team){
 }
 function beginMatch(){
  const w=active();if(!w){go("saves");return}
+ const isPlayer=w.mode!=="coach";
+ const profile=isPlayer?ensurePlayerProfile(w):null;
+ const controlIdx=isPlayer?positionIndex(profile.position):null;
  const opponent=OPPONENTS[w.played%OPPONENTS.length];
- match={home:initPlayers(w.formation,0),away:initPlayers("442",1),ball:{x:500,y:295,vx:0,vy:0},owner:{team:0,idx:9},score:[0,0],elapsed:0,paused:false,speed:1,actionTimer:1.1,events:[],eventsTimer:0,opponent,formation:w.formation,completed:false};
+ match={home:initPlayers(w.formation,0),away:initPlayers("442",1),ball:{x:500,y:295,vx:0,vy:0},
+  owner:{team:0,idx:9},score:[0,0],elapsed:0,paused:false,speed:1,
+  actionTimer:1.1,events:[],eventsTimer:0,opponent,formation:w.formation,completed:false,
+  playerMode:isPlayer,controlIdx,assistPending:false,
+  individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0}};
+ if(isPlayer){
+  const current=match.home[controlIdx].number;
+  const existing=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
+  if(existing)existing.number=current;
+  match.home[controlIdx].number=profile.number;
+ }
+ joystick={x:0,y:0};movementKeys.clear();updateTouchStick();
  saveIdDuringMatch=w.id;
  $("match-fixture").textContent=w.club+" — "+opponent;
+ $("coach-match-panel").hidden=isPlayer;
+ $("player-match-panel").hidden=!isPlayer;
  $("match-formation").value=w.formation;$("match-speed").value="1";$("match-pause").textContent="ПАУЗА";
- addEvent("Начало матча. Команды вышли на поле.");updateScore();
+ $("player-match-pause").textContent="ПАУЗА";
+ $("player-match-name").textContent=isPlayer?w.name.toUpperCase()+" · №"+profile.number:"";
+ $("end-match").textContent=isPlayer?"ВЫЙТИ ИЗ МАТЧА":"ЗАВЕРШИТЬ ПРОСМОТР";
+ addEvent(isPlayer?"Ты выходишь на поле. Управляй своим игроком!":"Начало матча. Команды вышли на поле.");
+ updateScore();updatePlayerHUD();
  if(!raf){lastFrame=performance.now();raf=requestAnimationFrame(frame)}
 }
 function addEvent(s){
  if(!match)return;
  const minute=Math.min(90,Math.floor(match.elapsed/60)),line=String(minute)+"' "+s;
  match.events.unshift(line);match.events=match.events.slice(0,7);
- const el=$("match-events");el.replaceChildren();
- for(const item of match.events){const p=document.createElement("p");p.textContent=item;el.append(p)}
+ for(const id of ["match-events","player-match-events"]){
+  const el=$(id);el.replaceChildren();
+  for(const item of match.events){const p=document.createElement("p");p.textContent=item;el.append(p)}
+ }
 }
+function updatePlayerHUD(){
+ if(!match?.playerMode)return;
+ const p=match.individual;
+ $("player-match-hud").textContent="Голы: "+p.goals+" · Пасы: "+p.passes+" · Удары: "+p.shots+" · Отборы: "+p.tackles;
+}
+function playerOwnsBall(){return match?.playerMode&&!match.paused&&screen==="match"&&match.owner?.team===0&&match.owner.idx===match.controlIdx}
+function playerPass(){
+ if(!playerOwnsBall()){toast("Сначала получи мяч");return false}
+ const m=match,p=m.home[m.controlIdx];
+ const choices=m.home.map((q,i)=>({q,i,score:q.x-p.x+Math.random()*120-Math.abs(q.y-p.y)*.45}))
+  .filter(x=>x.i>0&&x.i!==m.controlIdx).sort((a,b)=>b.score-a.score);
+ if(!choices.length)return false;
+ const target=choices[0].i;
+ m.owner={team:0,idx:target};m.individual.passes++;m.assistPending=true;m.actionTimer=1.2;
+ addEvent("№"+p.number+" отдаёт передачу партнёру.");updatePlayerHUD();
+ return true;
+}
+function playerShoot(){
+ if(!playerOwnsBall()){toast("Нельзя ударить без мяча");return false}
+ const m=match,p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
+ const range=1000-p.x;
+ m.individual.shots++;
+ // Game prototype's shot outcome depends on position and personal attribute.
+ const accuracy=Math.max(.006,Math.min(.68,.17+(profile.skills.shooting-60)*.006+(280-range)*.00055));
+ const goalChance=Math.random()<accuracy;
+ if(goalChance){
+  m.score[0]++;m.individual.goals++;m.assistPending=false;
+  addEvent("ГОЛ! "+active().name+" забивает за "+active().club+"!");
+ }else{m.assistPending=false;addEvent("Удар "+active().name+": мимо ворот или сейв вратаря.");}
+ m.owner={team:1,idx:9};m.actionTimer=1.3;
+ updateScore();updatePlayerHUD();return true;
+}
+function playerTackle(){
+ if(!match?.playerMode||match.paused||screen!=="match")return false;
+ const m=match;
+ if(!m.owner||m.owner.team!==1){toast("Сейчас мяч у твоей команды");return false}
+ const p=m.home[m.controlIdx],enemy=m.away[m.owner.idx];
+ if(Math.hypot(p.x-enemy.x,p.y-enemy.y)>100){toast("Подойди ближе к сопернику");return false}
+ const profile=ensurePlayerProfile(active());
+ if(Math.random()<.32+profile.skills.defending*.006){
+  m.owner={team:0,idx:m.controlIdx};m.individual.tackles++;m.actionTimer=1.2;
+  addEvent("Удачный отбор! "+active().name+" завладевает мячом.");updatePlayerHUD();
+  return true;
+ }
+ addEvent("Попытка отбора не удалась.");return false;
+}
+function playerCallForPass(){
+ if(!match?.playerMode||match.paused||screen!=="match")return false;
+ const m=match;if(!m.owner||m.owner.team!==0||m.owner.idx===m.controlIdx){toast("Попросить пас можно у партнёра с мячом");return false}
+ const p=m.home[m.controlIdx],owner=m.home[m.owner.idx];
+ m.individual.requests++;
+ if(Math.hypot(p.x-owner.x,p.y-owner.y)>380){toast("Слишком далеко от партнёра");return false}
+ m.owner={team:0,idx:m.controlIdx};m.actionTimer=1.6;
+ addEvent("Партнёр услышал запрос и отдал пас.");updatePlayerHUD();
+ return true;
+}
+$("player-pass").onclick=playerPass;
+$("player-shoot").onclick=playerShoot;
+$("player-tackle").onclick=playerTackle;
+$("player-call").onclick=playerCallForPass;
+function togglePause(){
+ if(!match)return;
+ match.paused=!match.paused;
+ const label=match.paused?"ПРОДОЛЖИТЬ":"ПАУЗА";
+ $("match-pause").textContent=label;$("player-match-pause").textContent=label;
+}
+$("player-match-pause").onclick=togglePause;
+function updateTouchStick(){
+ const node=$("touch-stick");
+ node.style.transform="translate("+Math.round(joystick.x*32)+"px,"+Math.round(joystick.y*32)+"px)";
+}
+const pad=$("touch-pad");
+function setJoystick(e){
+ const r=pad.getBoundingClientRect();
+ let x=(e.clientX-(r.left+r.width/2))/(r.width*.38);
+ let y=(e.clientY-(r.top+r.height/2))/(r.height*.38);
+ const len=Math.hypot(x,y);
+ if(len>1){x/=len;y/=len}
+ joystick={x,y};updateTouchStick();
+}
+pad.addEventListener("pointerdown",e=>{e.preventDefault();joystickActive=true;pad.setPointerCapture(e.pointerId);setJoystick(e)});
+pad.addEventListener("pointermove",e=>{if(joystickActive)setJoystick(e)});
+function stopJoystick(){joystickActive=false;joystick={x:0,y:0};updateTouchStick()}
+pad.addEventListener("pointerup",stopJoystick);pad.addEventListener("pointercancel",stopJoystick);
 function updateScore(){
  if(!match)return;
  $("match-score").textContent=match.score[0]+" : "+match.score[1];
@@ -216,21 +408,32 @@ function reposition(){
 }
 $("match-formation").onchange=()=>{
  if(!match)return;
+ if(match.playerMode){toast("Схему выбирает тренер команды");$("match-formation").value=match.formation;return}
  match.formation=$("match-formation").value;const w=active();if(w){w.formation=match.formation;store()}reposition();addEvent("Тренер меняет расстановку на "+formationName(match.formation)+".");
 };
 $("match-speed").onchange=()=>{if(match)match.speed=Number($("match-speed").value)};
-$("match-pause").onclick=()=>{if(!match)return;match.paused=!match.paused;$("match-pause").textContent=match.paused?"ПРОДОЛЖИТЬ":"ПАУЗА"};
+$("match-pause").onclick=togglePause;
 $("match-edit").onclick=()=>{if(match)go("tactics")};
 $("end-match").onclick=()=>{if(match){if(confirm("Выйти из матча? Незавершённый результат не сохранится."))finishMatch(false)}else go("career")};
 function finishMatch(record){
  if(match&&record&&!match.completed){
   match.completed=true;
   const w=saves.find(s=>s.id===saveIdDuringMatch);
-  if(w){const a=match.score[0],b=match.score[1];w.played++;w.goalsFor+=a;w.goalsAgainst+=b;
+  if(w){
+   const a=match.score[0],b=match.score[1];w.played++;
+   w.goalsFor+=a;w.goalsAgainst+=b;
    if(a>b)w.wins++;else if(a===b)w.draws++;else w.losses++;
-   w.events.unshift(w.club+" "+a+":"+b+" "+match.opponent);w.events=w.events.slice(0,12);store();
+   w.events??=[];w.events.unshift(w.club+" "+a+":"+b+" "+match.opponent);
+   if(match.playerMode){
+    const result=a>b?"win":a===b?"draw":"loss";
+    const profile=ensurePlayerProfile(w);
+    const info=matchProgress(profile,match.individual,result);
+    w.events.unshift("Личный матч: "+match.individual.goals+" гол., "+match.individual.assists+" гол. пас., "+match.individual.tackles+" отбор. +"+info.points+" очк. тренировки");
+   }
+   w.events=w.events.slice(0,12);store();
   }
  }
+ joystick={x:0,y:0};movementKeys.clear();updateTouchStick();
  match=null;saveIdDuringMatch=null;go("career");
 }
 function frame(now){
@@ -248,13 +451,26 @@ function move(p,x,y,dt,speed){
 function step(dt){
  if(!match)return;
  const m=match;m.elapsed=Math.min(5400,m.elapsed+dt*52);
+ if(m.playerMode){
+  const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
+  const pressed=k=>movementKeys.has(k);
+  let dx=joystick.x+(pressed("d")||pressed("arrowright")?1:0)-(pressed("a")||pressed("arrowleft")?1:0);
+  let dy=joystick.y+(pressed("s")||pressed("arrowdown")?1:0)-(pressed("w")||pressed("arrowup")?1:0);
+  const magnitude=Math.hypot(dx,dy);
+  if(magnitude>.05){
+   dx/=Math.max(1,magnitude);dy/=Math.max(1,magnitude);
+   const speed=93+(profile.skills.pace*.62)*(profile.fitness/100);
+   p.x=bound(p.x+dx*dt*speed,34,966);p.y=bound(p.y+dy*dt*speed,34,556);
+  }
+ }
  // Tactical rearrangement is continuous, never a teleport.
  for(const [team,list] of [[0,m.home],[1,m.away]]){
   for(let i=0;i<list.length;i++){
-   const p=list[i];let gx=p.homeX,gy=p.homeY;
+   const p=list[i];if(m.playerMode&&team===0&&i===m.controlIdx)continue;let gx=p.homeX,gy=p.homeY;
    if(m.owner&&m.owner.team!==team&&i>0){
     const d=Math.hypot(p.x-m.ball.x,p.y-m.ball.y);
-    const nearest=list.slice(1).reduce((a,b)=>Math.hypot(a.x-m.ball.x,a.y-m.ball.y)<Math.hypot(b.x-m.ball.x,b.y-m.ball.y)?a:b);
+    const available=list.slice(1).filter(q=>!(m.playerMode&&team===0&&q===m.home[m.controlIdx]));
+    const nearest=available.reduce((a,b)=>Math.hypot(a.x-m.ball.x,a.y-m.ball.y)<Math.hypot(b.x-m.ball.x,b.y-m.ball.y)?a:b);
     if(p===nearest){gx=m.ball.x;gy=m.ball.y}
     else{gx+=(m.ball.x-500)*.08;gy+=(m.ball.y-295)*.09}
    }
@@ -274,10 +490,16 @@ function step(dt){
  const owner=m.owner&& (m.owner.team===0?m.home:m.away)[m.owner.idx];
  if(owner){m.ball.x+=(owner.x-m.ball.x)*Math.min(1,dt*9);m.ball.y+=(owner.y-m.ball.y)*Math.min(1,dt*9)}
  m.actionTimer-=dt;
- if(m.actionTimer<=0){performAction();m.actionTimer=.85+Math.random()*1.7}
+ if(m.actionTimer<=0){
+  if(!(m.playerMode&&m.owner?.team===0&&m.owner.idx===m.controlIdx))performAction();
+  m.actionTimer=.85+Math.random()*1.7;
+ }
  m.eventsTimer-=dt;
  if(m.eventsTimer<=0){m.eventsTimer=4+Math.random()*9;incident()}
- if(m.elapsed>=2700&&!m.halftime){m.halftime=true;m.paused=true;$("match-pause").textContent="НАЧАТЬ 2-Й ТАЙМ";addEvent("Перерыв. Матч остановлен для тренерских решений.")}
+ if(m.elapsed>=2700&&!m.halftime){m.halftime=true;m.paused=true;
+ $("match-pause").textContent="НАЧАТЬ 2-Й ТАЙМ";
+ $("player-match-pause").textContent="НАЧАТЬ 2-Й ТАЙМ";
+ addEvent(m.playerMode?"Перерыв! Отдохни перед вторым таймом.":"Перерыв. Матч остановлен для тренерских решений.")}
  if(m.elapsed>=5400){addEvent("Финальный свисток.");finishMatch(true);return}
  updateScore();
 }
@@ -289,15 +511,21 @@ function performAction(){
  const dist=team===0?1000-ballCarrier.x:ballCarrier.x;
  if(dist<230&&Math.random()<.68){
   const onTarget=Math.random()<.47;
-  if(onTarget&&Math.random()<.35){m.score[team]++;addEvent("ГОЛ! Точный удар команды "+(team===0?"хозяев":"гостей")+"!");m.owner={team:1-team,idx:9};}
-  else{addEvent(onTarget?"Вратарь отражает удар!":"Удар рядом с воротами. Удар от ворот.");m.owner={team:1-team,idx:Math.floor(1+Math.random()*10)};}
+  if(onTarget&&Math.random()<.35){
+   m.score[team]++;
+   if(m.playerMode&&team===0&&m.assistPending){m.individual.assists++;addEvent("Голевая передача твоего футболиста!");}
+   addEvent("ГОЛ! Точный удар команды "+(team===0?"хозяев":"гостей")+"!");
+   m.owner={team:1-team,idx:9};m.assistPending=false;updatePlayerHUD();
+  }
+  else{addEvent(onTarget?"Вратарь отражает удар!":"Удар рядом с воротами. Удар от ворот.");m.owner={team:1-team,idx:Math.floor(1+Math.random()*10)};m.assistPending=false;}
   updateScore();return;
  }
- if(Math.random()<.16){m.owner={team:1-team,idx:1+Math.floor(Math.random()*10)};addEvent("Перехват передачи.");return}
+ if(Math.random()<.16){m.owner={team:1-team,idx:1+Math.floor(Math.random()*10)};m.assistPending=false;addEvent("Перехват передачи.");return}
  const passing=team===0?(active()?.instructions[ballCarrier.number]?.passing||"mixed"):"mixed";
  const candidates=players.map((p,i)=>{const distance=Math.hypot(p.x-ballCarrier.x,p.y-ballCarrier.y);let score=(team===0?p.x:-p.x)+Math.random()*180;
   if(passing==="short")score-=distance*1.7;
   if(passing==="long")score+=distance*.55;
+  if(m.playerMode&&team===0&&i===m.controlIdx)score+=160;
   return {p,i,score};}).filter(x=>x.i>0&&x.i!==idx);
  candidates.sort((a,b)=>b.score-a.score);
  m.owner={team,idx:candidates[Math.floor(Math.random()*Math.min(4,candidates.length))].i};
@@ -325,6 +553,10 @@ function drawMatch(){
  ctx.fillStyle="#e3eddf";ctx.fillRect(7,247,13,96);ctx.fillRect(980,247,13,96);
  for(const [team,list] of [[0,m.home],[1,m.away]]){
   for(const p of list){
+   if(m.playerMode&&team===0&&p===m.home[m.controlIdx]){
+    ctx.beginPath();ctx.strokeStyle="#ffe17b";ctx.lineWidth=4;ctx.arc(p.x,p.y,17,0,Math.PI*2);ctx.stroke();
+    ctx.fillStyle="#ffe17b";ctx.beginPath();ctx.moveTo(p.x-6,p.y-24);ctx.lineTo(p.x+6,p.y-24);ctx.lineTo(p.x,p.y-17);ctx.fill();
+   }
    ctx.save();ctx.translate(p.x,p.y);ctx.fillStyle="#0005";ctx.beginPath();ctx.ellipse(0,13,11,5,0,0,Math.PI*2);ctx.fill();
    ctx.strokeStyle=team===0?"#eef4ff":"#e8bdc3";ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(-4,7);ctx.lineTo(-5,13);ctx.moveTo(4,7);ctx.lineTo(5,13);ctx.stroke();
    ctx.beginPath();ctx.fillStyle=team===0?"#eef3fb":"#b53140";ctx.strokeStyle=team===0?"#204db5":"#f1dee1";ctx.lineWidth=2;ctx.arc(0,0,10,0,Math.PI*2);ctx.fill();ctx.stroke();
@@ -335,5 +567,20 @@ function drawMatch(){
  ctx.fillStyle="#fff";ctx.strokeStyle="#172b27";ctx.lineWidth=2;ctx.beginPath();ctx.arc(m.ball.x,m.ball.y,5.2,0,Math.PI*2);ctx.fill();ctx.stroke();
 }
 window.addEventListener("resize",()=>{if(screen==="tactics")drawBoard()});
-window.addEventListener("keydown",e=>{if(e.key==="Escape"&&screen!=="home")$("back-btn").click()});
+window.addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(k==="escape"&&screen!=="home"){$("back-btn").click();return}
+ if(screen!=="match"||!match?.playerMode)return;
+ if(["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"].includes(k)){
+  e.preventDefault();movementKeys.add(k);
+ }else if(!e.repeat&&["j","k","l","r"].includes(k)){
+  e.preventDefault();
+  if(k==="j")playerPass();
+  if(k==="k")playerShoot();
+  if(k==="l")playerTackle();
+  if(k==="r")playerCallForPass();
+ }
+});
+window.addEventListener("keyup",e=>movementKeys.delete(e.key.toLowerCase()));
+window.addEventListener("blur",()=>{movementKeys.clear();joystick={x:0,y:0};updateTouchStick()});
 go("home");
