@@ -98,8 +98,12 @@ export function initWorldUI({onChooseClub}={}){
   }
   $("world-result-counter").textContent=formatCount(candidates.length)+" команд"+(candidates.length>max?" · показаны первые "+max:"");
   if(!candidates.length){
+   chosen=null;
    const msg=document.createElement("p");msg.className="fine";msg.textContent="Ничего не найдено. Измени фильтры или название клуба.";panel.append(msg);
-   openClub(null);
+   $("world-team-name").textContent="Клуб не найден";
+   $("world-team-meta").textContent="Измени страну, лигу или поисковый запрос.";
+   $("world-roster-status").textContent="";
+   $("world-roster").replaceChildren();
   }else{
    const matched=chosen&&candidates.find(c=>c.id===chosen.id);
    openClub(matched||candidates[0]);
