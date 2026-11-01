@@ -280,7 +280,7 @@ function beginMatch(){
  const controlIdx=isPlayer?positionIndex(profile.position):null;
  const opponent=OPPONENTS[w.played%OPPONENTS.length];
  match={home:initPlayers(w.formation,0),away:initPlayers("442",1),ball:{x:500,y:295,vx:0,vy:0},
-  owner:{team:0,idx:isPlayer?controlIdx:9},score:[0,0],elapsed:0,paused:false,speed:1,
+  owner:{team:0,idx:9},score:[0,0],elapsed:0,paused:false,speed:1,
   actionTimer:1.1,events:[],eventsTimer:0,opponent,formation:w.formation,completed:false,
   playerMode:isPlayer,controlIdx,assistPending:false,
   individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0}};
@@ -335,7 +335,7 @@ function playerShoot(){
  const range=1000-p.x;
  m.individual.shots++;
  // Game prototype's shot outcome depends on position and personal attribute.
- const accuracy=Math.max(.06,Math.min(.76,.16+(profile.skills.shooting-60)*.008+(320-range)*.0008));
+ const accuracy=Math.max(.006,Math.min(.68,.17+(profile.skills.shooting-60)*.006+(280-range)*.00055));
  const goalChance=Math.random()<accuracy;
  if(goalChance){
   m.score[0]++;m.individual.goals++;m.assistPending=false;
