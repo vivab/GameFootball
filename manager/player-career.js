@@ -24,7 +24,7 @@ export function makePlayerProfile(name,mode,position="ST"){
   return {
     age:preset?.age??18,position:preset?.position??position,number:preset?.number??(position==="CB"?4:position==="CM"?8:9),
     skills:{...(preset?.skills??CUSTOM_SKILLS)},fitness:100,trust:55,experience:0,
-    skillPoints:3,appearances:0,goals:0,assists:0,passes:0,
+    skillPoints:3,appearances:0,goals:0,assists:0,passes:0,saves:0,
     offers:[],contractMatches:15,careerStage:"Основной состав"
   };
 }
@@ -34,7 +34,7 @@ export function ensurePlayerProfile(world){
   const p=world.player;
   if(!p.skills)p.skills={...CUSTOM_SKILLS};
   for(const [key] of PLAYER_SKILLS)if(!Number.isFinite(p.skills[key]))p.skills[key]=CUSTOM_SKILLS[key];
-  for(const [key,fallback] of Object.entries({fitness:100,trust:55,experience:0,skillPoints:3,appearances:0,goals:0,assists:0,passes:0,contractMatches:15})){
+  for(const [key,fallback] of Object.entries({fitness:100,trust:55,experience:0,skillPoints:3,appearances:0,goals:0,assists:0,passes:0,saves:0,contractMatches:15})){
     if(!Number.isFinite(p[key]))p[key]=fallback;
   }
   if(!Array.isArray(p.offers))p.offers=[];
@@ -59,7 +59,7 @@ export function matchProgress(profile,stats={},result="draw"){
   const goals=Number.isFinite(stats.goals)?stats.goals:0;
   const assists=Number.isFinite(stats.assists)?stats.assists:0;
   const passes=Number.isFinite(stats.passes)?stats.passes:0;
-  profile.goals+=goals;profile.assists+=assists;profile.passes+=passes;
+  profile.goals+=goals;profile.assists+=assists;profile.passes+=passes;profile.saves=(profile.saves||0)+(Number.isFinite(stats.saves)?stats.saves:0);
   const points=1+Math.min(3,goals+assists);
   profile.skillPoints+=points;
   profile.experience+=20+goals*35+assists*20+Math.min(12,passes*2)+(result==="win"?15:0);
