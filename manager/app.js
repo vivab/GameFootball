@@ -1,3 +1,4 @@
+import {PLAYER_SKILLS,makePlayerProfile,ensurePlayerProfile,playerOverall,training,matchProgress,availableOffers,acceptOffer,positionIndex,positionLabel,xpLevel} from "./player-career.js";
 
 "use strict";
 const $ = id => document.getElementById(id);
@@ -15,6 +16,8 @@ let activeId=null, screen="home", previous="home", createMode="coach";
 let selected=10, phase="attack", drawing=false, drawMoved=false, drawn=[];
 let previewTactics={formation:"433",routes:{},instructions:{}};
 let match=null, raf=0, lastFrame=0, saveIdDuringMatch=null, returnFromTactics="career";
+const movementKeys=new Set();
+let joystick={x:0,y:0},joystickActive=false;
 function readJSON(key,fallback){try{const value=JSON.parse(localStorage.getItem(key));return value??fallback}catch{return fallback}}
 function store(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(saves))}catch{toast("Не удалось сохранить: браузер ограничивает хранилище")}}
 function storePrefs(){try{localStorage.setItem(PREF_KEY,JSON.stringify(prefs))}catch{}}
@@ -54,6 +57,10 @@ function chooseType(type){
  $("entry-club").value=type==="coach"?"ФК Аврора":"ФК Академия";
  $("club-label").textContent="Клуб в этом мире";
  $("real-select-wrap").hidden=!real;
+ $("position-wrap").hidden=type!=="custom";
+ $("entry-name").hidden=real;$("name-label").hidden=real;
+ $("entry-name").required=!real;
+ $("entry-position").value="ST";
  go("create");
 }
 $("world-form").addEventListener("submit",e=>{
@@ -63,6 +70,7 @@ $("world-form").addEventListener("submit",e=>{
  const club=$("entry-club").value.trim();
  if(!name||!club){toast("Заполни имя и название клуба");return}
  const w={id:String(Date.now())+"-"+Math.random().toString(36).slice(2,7),mode:createMode,name,club,season:2026,played:0,wins:0,draws:0,losses:0,goalsFor:0,goalsAgainst:0,formation:"433",routes:{},instructions:{},events:[],createdAt:Date.now()};
+ if(createMode!=="coach")w.player=makePlayerProfile(name,createMode,$("entry-position").value);
  saves.unshift(w);activeId=w.id;store();go("career");toast("Новый футбольный мир создан");
 });
 function renderSaves(){
@@ -83,26 +91,104 @@ function renderSaves(){
 }
 function renderCareer(){
  const w=active();if(!w){go("saves");return}
- $("career-type").textContent=w.mode==="coach"?"КАРЬЕРА ТРЕНЕРА":w.mode==="real"?"КАРЬЕРА ЗА РЕАЛЬНОГО ФУТБОЛИСТА":"КАРЬЕРА СОЗДАННОГО ИГРОКА";
+ const isCoach=w.mode==="coach";
+ $("coach-dashboard").hidden=!isCoach;
+ $("player-dashboard").hidden=isCoach;
+ $("career-type").textContent=isCoach?"КАРЬЕРА ТРЕНЕРА":w.mode==="real"?"КАРЬЕРА РЕАЛЬНОГО ФУТБОЛИСТА":"КАРЬЕРА СОЗДАННОГО ИГРОКА";
  $("career-name").textContent=w.name;
- $("career-meta").textContent=w.club+" · Сезон "+w.season+"/"+(w.season+1)+" · Схема "+formationName(w.formation);
+ $("career-meta").textContent=isCoach
+  ?w.club+" · Сезон "+w.season+"/"+(w.season+1)+" · Схема "+formationName(w.formation)
+  :w.club+" · Сезон "+w.season+"/"+(w.season+1)+" · Индивидуальная карьера";
+ if(!isCoach){renderPlayerDashboard(w);return}
  const figures=[["МАТЧИ",w.played],["ПОБЕДЫ",w.wins],["НИЧЬИ",w.draws],["ПОРАЖЕНИЯ",w.losses]];
  $("career-figures").replaceChildren();
  for(const [label,value] of figures){const div=document.createElement("div");div.className="figure";const a=document.createElement("strong");a.textContent=value;const b=document.createElement("span");b.textContent=label;div.append(a,b);$("career-figures").append(div)}
- $("career-about").textContent="Голы: "+w.goalsFor+"–"+w.goalsAgainst+". Каждая карьера имеет собственную историю. Турнирная таблица и реальные составы появятся в следующих версиях.";
- $("career-news").textContent=w.events.length?w.events.slice(0,4).join(" · "):"Твоя история только начинается. Проведи первый матч!";
+ $("career-about").textContent="Голы: "+w.goalsFor+"–"+w.goalsAgainst+". Ты управляешь командой, а не отдельным футболистом. Выбирай схему и маршруты на тактической доске.";
+ $("career-news").textContent=w.events?.length?w.events.slice(0,4).join(" · "):"Твоя история только начинается. Проведи первый матч!";
 }
+function renderPlayerDashboard(w){
+ const p=ensurePlayerProfile(w);
+ $("player-position").textContent=positionLabel(p.position);
+ $("player-details").textContent=w.name+" · "+p.age+" лет · № "+p.number+" · "+w.club;
+ $("player-status").textContent=p.careerStage||"Основной состав";
+ $("player-shirt-number").textContent=p.number;
+ $("player-overall").textContent=playerOverall(p);
+ const stats=[["МАТЧИ",p.appearances],["ГОЛЫ",p.goals],["ГОЛЕВЫЕ",p.assists],["УРОВЕНЬ",xpLevel(p)]];
+ $("player-metrics").replaceChildren();
+ for(const [label,value] of stats){
+  const cell=document.createElement("div");cell.className="figure";
+  const big=document.createElement("strong");big.textContent=value;
+  const small=document.createElement("span");small.textContent=label;cell.append(big,small);
+  $("player-metrics").append(cell);
+ }
+ $("training-points").textContent=p.skillPoints+" ОЧКА";
+ $("player-skills").replaceChildren();
+ for(const [skill,label] of PLAYER_SKILLS){
+  const el=document.createElement("div");el.className="skill-item";
+  const head=document.createElement("div");head.className="skill-head";
+  const name=document.createElement("span");name.textContent=label;
+  const rating=document.createElement("strong");rating.textContent=p.skills[skill];
+  head.append(name,rating);
+  const track=document.createElement("div");track.className="skill-track";
+  const fill=document.createElement("div");fill.className="skill-fill";fill.style.width=p.skills[skill]+"%";
+  track.append(fill);
+  const button=document.createElement("button");button.textContent="ТРЕНИРОВАТЬ +2";
+  button.disabled=p.skillPoints===0||p.skills[skill]>=99;
+  button.onclick=()=>{
+   const result=training(p,skill);
+   if(result.ok){store();renderPlayerDashboard(w)}
+   toast(result.ok?label+": "+result.message:result.message);
+  };
+  el.append(head,track,button);$("player-skills").append(el);
+ }
+ $("player-rest").disabled=p.lastRestAtPlayed===w.played||p.fitness>=100;
+ $("player-feedback").textContent="Форма: "+p.fitness+"% · Доверие тренера: "+p.trust+"% · Опыт: "+p.experience+" XP. На поле ты управляешь только своим футболистом.";
+ $("player-contract").textContent="Контракт: ещё "+p.contractMatches+" матчей · Доверие тренера: "+p.trust+"%. Клубом и составом распоряжается ИИ-тренер.";
+ $("player-news").textContent=w.events?.length?w.events.slice(0,5).join(" · "):"Дебют впереди. Прояви себя в первом матче!";
+ const offers=availableOffers(w);$("player-offers").replaceChildren();
+ if(!offers.length){
+  const note=document.createElement("p");note.className="fine";
+  note.textContent=p.appearances<3?"Новые предложения могут появиться после трёх матчей.":"Пока нет подходящих предложений.";
+  $("player-offers").append(note);
+ }else{
+  for(const offer of offers){
+   const card=document.createElement("div");card.className="offer";
+   const title=document.createElement("strong");title.textContent=offer.club;
+   const detail=document.createElement("small");detail.textContent=offer.label+" · демонстрационный контракт";
+   const button=document.createElement("button");button.textContent="ПЕРЕЙТИ В КЛУБ";
+   button.onclick=()=>{
+    if(!confirm("Принять предложение клуба «"+offer.club+"»?"))return;
+    if(acceptOffer(w,offer.club)){store();renderCareer();toast("Переход в "+offer.club+" оформлен")}
+   };
+   card.append(title,detail,button);$("player-offers").append(card);
+  }
+ }
+}
+$("player-rest").onclick=()=>{
+ const w=active();if(!w||w.mode==="coach")return;
+ const p=ensurePlayerProfile(w);
+ if(p.lastRestAtPlayed===w.played){toast("Восстановление уже использовано до следующего матча");return}
+ if(p.fitness>=100){toast("Форма уже максимальная");return}
+ p.fitness=Math.min(100,p.fitness+18);p.lastRestAtPlayed=w.played;
+ w.events.unshift("День восстановления: физическая форма "+p.fitness+"%");
+ store();renderPlayerDashboard(w);toast("Форма восстановлена");
+};
 function renderStats(){
  const box=$("stats-list");box.replaceChildren();
  if(!saves.length){box.innerHTML='<div class="empty">Статистика появится после создания карьеры.</div>';return}
- for(const w of saves){const el=document.createElement("div");el.className="save-row";el.textContent=w.name+" · "+w.played+" матчей · "+w.wins+" побед · Голы "+w.goalsFor+":"+w.goalsAgainst;box.append(el)}
+ for(const w of saves){
+  const el=document.createElement("div");el.className="save-row";
+  if(w.mode==="coach")el.textContent=w.name+" · Тренер · "+w.played+" матчей · "+w.wins+" побед · Голы "+w.goalsFor+":"+w.goalsAgainst;
+  else{const p=ensurePlayerProfile(w);el.textContent=w.name+" · Игрок · "+p.appearances+" матчей · "+p.goals+" голов · "+p.assists+" голевых передач · Рейтинг "+playerOverall(p)}
+  box.append(el);
+ }
 }
 $("reduce-motion").checked=!!prefs.reduceMotion;
 $("show-numbers").checked=prefs.showNumbers!==false;
 for(const id of ["reduce-motion","show-numbers"])$(id).onchange=()=>{prefs.reduceMotion=$("reduce-motion").checked;prefs.showNumbers=$("show-numbers").checked;storePrefs();toast("Настройки сохранены")};
 function formationName(key){return {"433":"4-3-3","442":"4-4-2","343":"3-4-3"}[key]||"4-3-3"}
 function positions(form){return FORMATIONS[form]||FORMATIONS["433"]}
-function tacticsData(){return active()||previewTactics}
+function tacticsData(){const w=active();return w?.mode==="coach"?w:previewTactics}
 function pointFor(number,form){
  const p=positions(form)[number-1];
  return {x:55+p[1]*540,y:48+(1-p[0])*660};
