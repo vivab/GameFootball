@@ -50,8 +50,9 @@ export function training(profile,key){
   if(profile.skillPoints<1)return {ok:false,message:"Нет очков тренировки. Сыграй матч."};
   if(profile.skills[key]>=99)return {ok:false,message:"Этот навык уже достиг максимума."};
   profile.skillPoints--;
-  profile.skills[key]=Math.min(99,profile.skills[key]+2);
-  return {ok:true,message:"Навык улучшен! +"+Math.min(2,99-(profile.skills[key]-2))};
+  const gain=Math.min(2,99-profile.skills[key]);
+  profile.skills[key]+=gain;
+  return {ok:true,message:"Навык улучшен! +"+gain};
 }
 export function matchProgress(profile,stats={},result="draw"){
   profile.appearances++;
@@ -69,7 +70,7 @@ export function matchProgress(profile,stats={},result="draw"){
 }
 export function availableOffers(world){
   const profile=ensurePlayerProfile(world);
-  if(!profile||profile.appearances<3)return [];
+  if(!profile||profile.appearances<3||profile.appearances-(profile.lastTransferAt??0)<3)return [];
   // Fictional teams; real-world databases and negotiations are not yet connected.
   return [
     {id:"north",club:"ФК Север",label:"Больше игрового времени",minTrust:0},
@@ -80,7 +81,7 @@ export function availableOffers(world){
 export function acceptOffer(world,club){
   const offer=availableOffers(world).find(offer=>offer.club===club);
   if(!offer)return false;
-  world.club=offer.club;world.player.contractMatches=15;
+  world.club=offer.club;world.player.contractMatches=15;world.player.lastTransferAt=world.player.appearances;
   world.events??=[];world.events.unshift("Новый контракт: "+club);
   return true;
 }
