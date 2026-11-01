@@ -74,6 +74,7 @@ export function availableOffers(world){
   // Fictional teams; real-world databases and negotiations are not yet connected.
   return [
     {id:"north",club:"ФК Север",label:"Больше игрового времени",minTrust:0},
+    {id:"horizon",club:"ФК Горизонт",label:"Новая роль в команде",minTrust:0},
     {id:"olympic",club:"Олимпик",label:"Выше конкуренция",minTrust:60},
     {id:"union",club:"Унион",label:"Контракт на новый сезон",minTrust:75}
   ].filter(offer=>offer.minTrust<=profile.trust&&offer.club!==world.club);
