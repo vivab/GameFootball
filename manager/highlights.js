@@ -59,9 +59,9 @@ export function advanceBall(ball,dt){
     ball.inNet="right";goal="right";ball.x=Math.max(right+radius,ball.x);
    }else if(prevX>=left&&ball.x<=left&&ball.vx<0&&withinMouth){
     ball.inNet="left";goal="left";ball.x=Math.min(left-radius,ball.x);
-   }else if(ball.x>right-radius){
+   }else if(ball.x>right){
     ball.x=right-radius;ball.vx=-Math.abs(ball.vx)*.27;
-   }else if(ball.x<left+radius){
+   }else if(ball.x<left){
     ball.x=left+radius;ball.vx=Math.abs(ball.vx)*.27;
    }
    if(ball.y<top+radius){ball.y=top+radius;ball.vy=Math.abs(ball.vy)*.36}
