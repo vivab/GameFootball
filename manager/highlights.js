@@ -67,7 +67,7 @@ export function advanceBall(ball,dt){
    if(ball.y<top+radius){ball.y=top+radius;ball.vy=Math.abs(ball.vy)*.36}
    if(ball.y>bottom-radius){ball.y=bottom-radius;ball.vy=-Math.abs(ball.vy)*.36}
   }
-  const drag=Math.exp(-(ball.inNet?3.9:1.32)*h);
+  const drag=Math.exp(-(ball.inNet?3.9:.55)*h);
   ball.vx*=drag;ball.vy*=drag;
   if(Math.hypot(ball.vx,ball.vy)<.4){ball.vx=0;ball.vy=0}
  }
