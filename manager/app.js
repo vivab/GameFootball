@@ -417,66 +417,68 @@ function updatePlayerHUD(){
  const p=match.individual;
  $("player-match-hud").textContent="Голы: "+p.goals+" · Пасы: "+p.passes+" · Удары: "+p.shots+" · Отборы: "+p.tackles;
 }
-function playerOwnsBall(){return match?.playerMode&&!match.paused&&screen==="match"&&match.owner?.team===0&&match.owner.idx===match.controlIdx}
+function playerOwnsBall(){return isHighlightManual()&&match.owner?.team===0&&match.owner.idx===match.controlIdx}
+
 function playerPass(){
- if(!playerOwnsBall()){toast("Сначала получи мяч");return false}
- const m=match,p=m.home[m.controlIdx];
- const choices=m.home.map((q,i)=>({q,i,score:q.x-p.x+Math.random()*120-Math.abs(q.y-p.y)*.45}))
-  .filter(x=>x.i>0&&x.i!==m.controlIdx).sort((a,b)=>b.score-a.score);
- if(!choices.length)return false;
- const target=choices[0].i;
- m.owner={team:0,idx:target};m.individual.passes++;m.assistPending=true;m.actionTimer=1.2;
- addEvent("№"+p.number+" отдаёт передачу партнёру.");updatePlayerHUD();
- return true;
+ if(!playerOwnsBall()){toast("Получи мяч, прежде чем пасовать.");return false}
+ const m=match,p=m.home[m.controlIdx],aim=currentAim();
+ shootBall(m.ball,p,aim,265);
+ m.owner=null;m.ballRecover=.27;m.lastKick="pass";m.lastShooter=null;
+ m.individual.passes++;m.assistPending=true;m.aiTimer=0;
+ addEvent("Пас в сторону прицела. Мяч движется по полю.");
+ updatePlayerHUD();return true;
 }
 function playerShoot(){
- if(!playerOwnsBall()){toast("Нельзя ударить без мяча");return false}
+ if(!playerOwnsBall()){toast("Сначала завладей мячом.");return false}
  const m=match,p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
- const range=1000-p.x;
- m.individual.shots++;
- // Game prototype's shot outcome depends on position and personal attribute.
- const accuracy=Math.max(.006,Math.min(.68,.17+(profile.skills.shooting-60)*.006+(280-range)*.00055));
- const goalChance=Math.random()<accuracy;
- if(goalChance){
-  m.score[0]++;m.individual.goals++;m.assistPending=false;
-  addEvent("ГОЛ! "+active().name+" забивает за "+active().club+"!");
- }else{m.assistPending=false;addEvent("Удар "+active().name+": мимо ворот или сейв вратаря.");}
- m.owner={team:1,idx:9};m.actionTimer=1.3;
- updateScore();updatePlayerHUD();return true;
+ const aim=currentAim(),power=360+profile.skills.shooting*.85;
+ shootBall(m.ball,p,aim,power);
+ m.owner=null;m.ballRecover=.35;m.lastKick="shot";m.lastShooter={team:0,idx:m.controlIdx};
+ m.individual.shots++;m.assistPending=false;
+ addEvent("Удар! Мяч летит в направлении джойстика.");
+ updatePlayerHUD();return true;
 }
 function playerTackle(){
- if(!match?.playerMode||match.paused||screen!=="match")return false;
- const m=match;
- if(!m.owner||m.owner.team!==1){toast("Сейчас мяч у твоей команды");return false}
- const p=m.home[m.controlIdx],enemy=m.away[m.owner.idx];
- if(Math.hypot(p.x-enemy.x,p.y-enemy.y)>100){toast("Подойди ближе к сопернику");return false}
+ if(!isHighlightManual())return false;
+ const m=match,p=m.home[m.controlIdx];
+ if(!m.owner){
+  if(Math.hypot(p.x-m.ball.x,p.y-m.ball.y)<35){
+   m.owner={team:0,idx:m.controlIdx};m.ball.vx=0;m.ball.vy=0;addEvent("Твой игрок подобрал мяч!");return true;
+  }
+  toast("До мяча слишком далеко.");return false;
+ }
+ if(m.owner.team!==1){toast("Сейчас мяч у твоей команды.");return false}
+ const enemy=m.away[m.owner.idx];
+ if(Math.hypot(p.x-enemy.x,p.y-enemy.y)>48){toast("Подойди ближе к сопернику.");return false}
  const profile=ensurePlayerProfile(active());
  if(Math.random()<.32+profile.skills.defending*.006){
-  m.owner={team:0,idx:m.controlIdx};m.individual.tackles++;m.actionTimer=1.2;
-  addEvent("Удачный отбор! "+active().name+" завладевает мячом.");updatePlayerHUD();
-  return true;
+  m.owner={team:0,idx:m.controlIdx};m.individual.tackles++;
+  addEvent("Удачный отбор!");updatePlayerHUD();return true;
  }
- addEvent("Попытка отбора не удалась.");return false;
+ addEvent("Отбор не удался.");return false;
 }
 function playerCallForPass(){
- if(!match?.playerMode||match.paused||screen!=="match")return false;
- const m=match;if(!m.owner||m.owner.team!==0||m.owner.idx===m.controlIdx){toast("Попросить пас можно у партнёра с мячом");return false}
- const p=m.home[m.controlIdx],owner=m.home[m.owner.idx];
+ if(!isHighlightManual())return false;
+ const m=match;
+ if(!m.owner||m.owner.team!==0||m.owner.idx===m.controlIdx){toast("Попросить пас можно у партнёра с мячом.");return false}
+ const p=m.home[m.controlIdx],carrier=m.home[m.owner.idx];
  m.individual.requests++;
- if(Math.hypot(p.x-owner.x,p.y-owner.y)>380){toast("Слишком далеко от партнёра");return false}
- m.owner={team:0,idx:m.controlIdx};m.actionTimer=1.6;
- addEvent("Партнёр услышал запрос и отдал пас.");updatePlayerHUD();
- return true;
+ if(Math.hypot(p.x-carrier.x,p.y-carrier.y)>430){toast("Партнёр слишком далеко.");return false}
+ const aim=normalizeDirection({x:p.x-carrier.x,y:p.y-carrier.y});
+ shootBall(m.ball,carrier,aim,275);
+ m.owner=null;m.ballRecover=.15;m.lastKick="teammate-pass";m.aiTimer=0;
+ addEvent("Партнёр направил пас в твою сторону.");updatePlayerHUD();return true;
 }
 $("player-pass").onclick=playerPass;
 $("player-shoot").onclick=playerShoot;
 $("player-tackle").onclick=playerTackle;
 $("player-call").onclick=playerCallForPass;
 function togglePause(){
- if(!match)return;
+ if(!match||match.playerMode&&match.highlightState!=="manual")return;
  match.paused=!match.paused;
  const label=match.paused?"ПРОДОЛЖИТЬ":"ПАУЗА";
  $("match-pause").textContent=label;$("player-match-pause").textContent=label;
+ if(match.playerMode)setMomentUI(match.paused?"paused":"manual");
 }
 $("player-match-pause").onclick=togglePause;
 function updateTouchStick(){
@@ -490,7 +492,7 @@ function setJoystick(e){
  let y=(e.clientY-(r.top+r.height/2))/(r.height*.38);
  const len=Math.hypot(x,y);
  if(len>1){x/=len;y/=len}
- joystick={x,y};updateTouchStick();
+ joystick={x,y};if(Math.hypot(x,y)>.15)lastAim=normalizeDirection(joystick,lastAim);updateTouchStick();
 }
 pad.addEventListener("pointerdown",e=>{e.preventDefault();joystickActive=true;pad.setPointerCapture(e.pointerId);setJoystick(e)});
 pad.addEventListener("pointermove",e=>{if(joystickActive)setJoystick(e)});
