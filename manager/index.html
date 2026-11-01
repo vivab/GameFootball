@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#091711">
+  <title>GameFootball — Career Prototype</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main id="app">
+    <header class="topbar">
+      <button class="brand" data-go="home" aria-label="Главное меню"><span class="crest">GF</span><span>GAMEFOOTBALL <em>CAREER</em></span></button>
+      <div class="top-right"><span class="dot"></span><span id="world-label">НОВАЯ ЭПОХА ФУТБОЛА</span><button id="back-btn" class="back" hidden>← НАЗАД</button></div>
+    </header>
+    <section id="home" class="screen active">
+      <div class="stadium" aria-hidden="true">
+        <div class="lights"></div><div class="stands"></div><div class="field-perspective"><div class="field-line"></div></div>
+        <svg class="people" viewBox="0 0 900 570" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+          <defs><linearGradient id="suit" x2="1" y2="1"><stop stop-color="#29373c"/><stop offset="1" stop-color="#090f16"/></linearGradient><linearGradient id="skin" x2=".8" y2="1"><stop stop-color="#c69f83"/><stop offset="1" stop-color="#805b49"/></linearGradient></defs>
+          <g opacity=".36" transform="translate(170 60)"><circle cx="120" cy="124" r="31" fill="#8b5d49"/><path d="M78 155Q120 126 161 155L185 386H58Z" fill="#a7283c"/><path d="M58 385L67 520H111L121 344L137 520H182L180 385" fill="#172b33"/></g>
+          <g opacity=".43" transform="translate(555 88)"><circle cx="120" cy="124" r="30" fill="#ab775a"/><path d="M80 154Q118 133 159 154L183 380H60Z" fill="#e7e6d3"/><path d="M59 380L71 520H115L120 349L139 520H180L182 380" fill="#202e31"/></g>
+          <g transform="translate(300 0)">
+            <ellipse cx="165" cy="552" rx="145" ry="16" fill="#000" opacity=".3"/>
+            <path d="M115 354L107 551H155L174 395L189 551H236L218 354Z" fill="#121921"/>
+            <path d="M87 180Q121 146 165 149Q218 145 252 185L271 408L60 408Z" fill="url(#suit)"/>
+            <path d="M120 172L162 241L203 170L177 160H143Z" fill="#f1ece6"/>
+            <path d="M162 241L151 191L164 181L178 191Z" fill="#243647"/>
+            <path d="M162 241L156 330L171 330Z" fill="#17242c"/>
+            <path d="M101 178L128 166L162 241L133 227L140 246L109 335L86 233Z" fill="#243039"/>
+            <path d="M225 178L199 166L162 241L194 226L188 248L221 336L246 230Z" fill="#18232d"/>
+            <path d="M87 181L56 299L78 410L105 400L102 291L116 214Z" fill="url(#suit)"/>
+            <path d="M244 180L276 297L256 409L229 405L230 292L216 213Z" fill="url(#suit)"/>
+            <path d="M77 409Q84 439 102 432L109 407Z" fill="url(#skin)"/>
+            <path d="M227 406Q227 442 250 429L254 409Z" fill="url(#skin)"/>
+            <rect x="149" y="120" width="31" height="43" rx="12" fill="url(#skin)"/>
+            <ellipse cx="164" cy="93" rx="55" ry="70" fill="url(#skin)"/>
+            <path d="M110 86Q99 18 147 19Q214 9 221 75Q197 43 158 49Q125 40 110 86Z" fill="#181b1c"/>
+            <path d="M136 97H152M178 97H192" stroke="#332823" stroke-width="4" stroke-linecap="round"/>
+            <path d="M156 126Q166 132 178 125" fill="none" stroke="#805548" stroke-width="3"/>
+          </g>
+        </svg>
+      </div>
+      <div class="home-copy"><p class="eyebrow">ТВОЙ ФУТБОЛ. ТВОЯ ИСТОРИЯ.</p><h1>НАПИШИ СВОЮ<br><span>ЛЕГЕНДУ.</span></h1><p class="lead">Создай клуб. Возглавь команду. Или проживи карьеру любимого футболиста.</p>
+        <nav class="main-actions">
+          <button class="primary xl" data-go="play"><span>▶</span> ИГРАТЬ <span class="end">→</span></button>
+          <button data-go="saves">МОЯ КАРЬЕРА <span class="end">↗</span></button>
+          <button data-go="tactics">ТАКТИЧЕСКАЯ ДОСКА <span class="end">↗</span></button>
+          <button data-go="stats">СТАТИСТИКА <span class="end">↗</span></button>
+          <button data-go="settings">НАСТРОЙКИ <span class="end">⚙</span></button>
+        </nav>
+      </div>
+      <footer class="home-footer"><span>EARLY PROTOTYPE · 2D CAREER</span><span>ГОРИЗОНТАЛЬНЫЙ РЕЖИМ РЕКОМЕНДУЕТСЯ</span></footer>
+    </section>
+    <section id="play" class="screen panel-screen">
+      <div class="page-head"><p class="eyebrow">ТВОЙ СЛЕДУЮЩИЙ ШАГ</p><h2>НАЧНИ ИСТОРИЮ</h2><p>Каждая карьера — отдельный мир с собственным сезоном и результатами.</p></div>
+      <div class="choice-grid"><button class="choice-card" data-go="new"><strong class="big-symbol">＋</strong><strong>НОВАЯ КАРЬЕРА</strong><span>Создать новый футбольный мир</span></button><button class="choice-card" data-go="saves"><strong class="big-symbol">↗</strong><strong>ПРОДОЛЖИТЬ</strong><span>Загрузить свой футбольный мир</span></button></div>
+    </section>
+    <section id="new" class="screen panel-screen">
+      <div class="page-head"><p class="eyebrow">НОВАЯ КАРЬЕРА</p><h2>КЕМ ТЫ СТАНЕШЬ?</h2></div>
+      <div class="choice-grid three">
+        <button class="choice-card" data-type="coach"><strong class="big-symbol">♛</strong><strong>ТРЕНЕР</strong><span>Управляй клубом, составом и тактикой</span></button>
+        <button class="choice-card" data-type="custom"><strong class="big-symbol">⚽</strong><strong>СВОЙ ИГРОК</strong><span>Создай футболиста и развивай его карьеру</span></button>
+        <button class="choice-card" data-type="real"><strong class="big-symbol">★</strong><strong>РЕАЛЬНЫЙ ИГРОК</strong><span>Продолжи карьеру известного футболиста</span></button>
+      </div>
+    </section>
+    <section id="create" class="screen panel-screen">
+      <div class="page-head"><p class="eyebrow">НАСТРОЙКА МИРА</p><h2 id="create-title">НОВАЯ КАРЬЕРА</h2><p id="create-hint"></p></div>
+      <form id="world-form" class="form-card">
+        <label id="name-label" for="entry-name">Имя</label><input id="entry-name" name="name" maxlength="36" required autocomplete="off">
+        <label id="club-label" for="entry-club">Клуб</label><input id="entry-club" name="club" maxlength="36" required autocomplete="off" value="ФК Аврора">
+        <div id="real-select-wrap" hidden><label for="real-select">Футболист</label><select id="real-select"><option>Криштиану Роналду</option><option>Лионель Месси</option><option>Килиан Мбаппе</option><option>Ламин Ямаль</option></select><p class="fine">Демонстрационный список: реальные составы, клубы и лицензированные материалы пока не подключены.</p></div>
+        <button class="primary" type="submit">СОЗДАТЬ МИР →</button>
+      </form>
+    </section>
+    <section id="saves" class="screen panel-screen">
+      <div class="page-head"><p class="eyebrow">ТВОИ МИРЫ</p><h2>МОЯ КАРЬЕРА</h2><p>Сохранения хранятся в этом браузере.</p></div><div id="save-list" class="save-list"></div><button class="subtle-btn" data-go="new">＋ СОЗДАТЬ НОВУЮ КАРЬЕРУ</button>
+    </section>
+    <section id="career" class="screen panel-screen">
+      <div class="page-head"><p class="eyebrow" id="career-type"></p><h2 id="career-name">МОЯ КАРЬЕРА</h2><p id="career-meta"></p></div>
+      <div class="dashboard"><div class="dashboard-main"><div id="career-figures" class="figures"></div><p id="career-about" class="fine"></p><div class="career-actions"><button class="primary" data-go="match">▶ СЛЕДУЮЩИЙ МАТЧ</button><button data-go="tactics">ТАКТИКА</button></div></div><div class="side-card"><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="career-news">Твоя история только начинается.</div></div></div>
+    </section>
+    <section id="tactics" class="screen panel-screen tactics-screen">
+      <div class="page-head compact"><p class="eyebrow">ПЕРСОНАЛЬНЫЕ УКАЗАНИЯ</p><h2>ТАКТИЧЕСКАЯ ДОСКА</h2><p>Выбери игрока и проведи пальцем по полю, чтобы нарисовать маршрут.</p></div>
+      <div class="tactics-layout"><div class="pitch-wrap"><canvas id="tactics-canvas" width="650" height="760" aria-label="Техническая доска: схема и маршруты игроков"></canvas></div><aside class="tactics-aside">
+        <label for="formation">СХЕМА</label><select id="formation"><option value="433">4-3-3</option><option value="442">4-4-2</option><option value="343">3-4-3</option></select>
+        <label for="phase">ФАЗА ИГРЫ</label><select id="phase"><option value="attack">При атаке</option><option value="defense">При обороне</option></select>
+        <div class="selected-card"><small>ВЫБРАН ФУТБОЛИСТ</small><strong id="selected-player">№ 10</strong></div>
+        <label for="pressing">ПРЕССИНГ</label><select id="pressing"><option value="normal">Обычный</option><option value="high">Высокий</option><option value="low">Низкий</option></select>
+        <label for="passing">ПЕРЕДАЧИ</label><select id="passing"><option value="mixed">Смешанные</option><option value="short">Короткие</option><option value="long">Длинные</option></select>
+        <button id="clear-route">ОЧИСТИТЬ МАРШРУТ</button><button class="primary" id="save-tactics">СОХРАНИТЬ ТАКТИКУ</button>
+        <p class="fine" id="tactic-note">Маршруты — ориентиры, а не телепортация или принудительное движение.</p>
+      </aside></div>
+    </section>
+    <section id="match" class="screen panel-screen match-screen">
+      <div class="match-top"><div><p class="eyebrow">СИМУЛЯЦИЯ · ПРОТОТИП</p><strong id="match-fixture">ФК Аврора — ФК Север</strong></div><div class="score"><strong id="match-score">0 : 0</strong><span id="match-minute">00'</span></div><button id="end-match">ЗАВЕРШИТЬ ПРОСМОТР</button></div>
+      <div class="match-grid"><div class="match-pitch"><canvas id="match-canvas" width="1000" height="590" aria-label="Симуляция футбольного матча 11 на 11"></canvas></div><aside class="match-aside"><p class="eyebrow">ТРЕНЕРСКАЯ ПАНЕЛЬ</p><label for="match-formation">СМЕНИТЬ СХЕМУ</label><select id="match-formation"><option value="433">4-3-3</option><option value="442">4-4-2</option><option value="343">3-4-3</option></select><label for="match-speed">СКОРОСТЬ</label><select id="match-speed"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select><button id="match-pause">ПАУЗА</button><button id="match-edit">ИЗМЕНИТЬ ТАКТИКУ</button><div id="match-events" class="events" aria-live="polite"></div></aside></div>
+    </section>
+    <section id="stats" class="screen panel-screen"><div class="page-head"><p class="eyebrow">ИСТОРИЯ</p><h2>СТАТИСТИКА</h2><p>Статистика твоих локальных карьер.</p></div><div id="stats-list" class="save-list"></div></section>
+    <section id="settings" class="screen panel-screen"><div class="page-head"><p class="eyebrow">ПАРАМЕТРЫ</p><h2>НАСТРОЙКИ</h2></div><div class="form-card"><label><input type="checkbox" id="reduce-motion"> Минимум фоновых анимаций</label><label><input type="checkbox" id="show-numbers" checked> Показывать номера игроков</label><p class="fine">Для мобильных устройств рекомендуется альбомная ориентация экрана. Настройки сохраняются локально.</p></div></section>
+    <div id="toast" role="status" aria-live="polite" hidden></div>
+  </main>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
