@@ -76,7 +76,9 @@ export function continentLabel(slug){return CONTINENT_NAMES[slug]||countryLabel(
 export function normalizeClubName(name){
  return String(name||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLowerCase()
   .replace(/&/g," and ").replace(/[.'’`]/g,"").replace(/[^a-z\p{L}0-9\s]+/gu," ")
-  .replace(/^(fc|cf|sc|afc|ac)\s+/,"").replace(/\s+(fc|cf|sc|afc|ac)$/,"")
+  .replace(/^(fc|cf|sc|afc|ac|cr|ca|ec|se)\s+/,"")
+  .replace(/^a\s+c\s+/,"").replace(/\s+(fc|cf|sc|afc|ac|rj)$/,"")
+  .replace(/\s+c\s+f$/,"")
   .replace(/\s+/g," ").trim();
 }
 function slugify(s){return normalizeClubName(s).replace(/\s+/g,"-").slice(0,80)||"club"}
@@ -99,6 +101,7 @@ export function buildWorldIndex(archive,squads,parts){
  const leagues=parts.flatMap(p=>p.leagues||[]);
  const allClubs=[],byId=new Map(),byCountryName=new Map(),usedIds=new Set();
  const addClub=(id,name,country,region,origin)=>{
+  if(country==="united-states")country="usa";
   if(!name||!country)return null;
   const key=country+"|"+normalizeClubName(name);
   const existing=byCountryName.get(key);
