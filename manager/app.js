@@ -415,87 +415,17 @@ function updatePlayerHUD(){
  const p=match.individual;
  $("player-match-hud").textContent="Голы: "+p.goals+" · Пасы: "+p.passes+" · Удары: "+p.shots+" · Отборы: "+p.tackles+(p.saves?" · Сейвы: "+p.saves:"");
 }
-function playerOwnsBall(){return isHighlightManual()&&match.owner?.team===0&&match.owner.idx===match.controlIdx}
-
-function playerPass(){
- if(!playerOwnsBall()){toast("Получи мяч, прежде чем пасовать.");return false}
- const m=match,p=m.home[m.controlIdx],aim=currentAim();
- shootBall(m.ball,p,aim,265);
- m.owner=null;m.ballRecover=.27;m.lastKick="pass";m.lastShooter={team:0,idx:m.controlIdx,kind:"pass"};
- m.individual.passes++;m.assistPending=true;m.aiTimer=0;
- addEvent("Пас в сторону прицела. Мяч движется по полю.");
- updatePlayerHUD();return true;
-}
-function playerShoot(){
- if(!playerOwnsBall()){toast("Сначала завладей мячом.");return false}
- const m=match,p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
- const aim=currentAim(),power=360+profile.skills.shooting*.85;
- shootBall(m.ball,p,aim,power);
- m.owner=null;m.ballRecover=.35;m.lastKick="shot";m.lastShooter={team:0,idx:m.controlIdx};
- m.individual.shots++;m.assistPending=false;
- addEvent("Удар! Мяч летит в направлении джойстика.");
- updatePlayerHUD();return true;
-}
-function playerTackle(){
- if(!isHighlightManual())return false;
- const m=match,p=m.home[m.controlIdx];
- if(!m.owner){
-  if(Math.hypot(p.x-m.ball.x,p.y-m.ball.y)<35){
-   m.owner={team:0,idx:m.controlIdx};m.ball.vx=0;m.ball.vy=0;addEvent("Твой игрок подобрал мяч!");return true;
-  }
-  toast("До мяча слишком далеко.");return false;
- }
- if(m.owner.team!==1){toast("Сейчас мяч у твоей команды.");return false}
- const enemy=m.away[m.owner.idx];
- if(Math.hypot(p.x-enemy.x,p.y-enemy.y)>48){toast("Подойди ближе к сопернику.");return false}
- const profile=ensurePlayerProfile(active());
- if(Math.random()<.32+profile.skills.defending*.006){
-  m.owner={team:0,idx:m.controlIdx};m.individual.tackles++;
-  addEvent("Удачный отбор!");updatePlayerHUD();return true;
- }
- addEvent("Отбор не удался.");return false;
-}
-function playerCallForPass(){
- if(!isHighlightManual())return false;
- const m=match;
- if(!m.owner||m.owner.team!==0||m.owner.idx===m.controlIdx){toast("Попросить пас можно у партнёра с мячом.");return false}
- const p=m.home[m.controlIdx],carrier=m.home[m.owner.idx];
- m.individual.requests++;
- if(Math.hypot(p.x-carrier.x,p.y-carrier.y)>430){toast("Партнёр слишком далеко.");return false}
- const aim=normalizeDirection({x:p.x-carrier.x,y:p.y-carrier.y});
- shootBall(m.ball,carrier,aim,275);
- m.owner=null;m.ballRecover=.15;m.lastKick="teammate-pass";m.aiTimer=0;
- addEvent("Партнёр направил пас в твою сторону.");updatePlayerHUD();return true;
-}
-$("player-pass").onclick=playerPass;
-$("player-shoot").onclick=playerShoot;
-$("player-tackle").onclick=playerTackle;
-$("player-call").onclick=playerCallForPass;
 function togglePause(){
- if(!match||match.playerMode&&match.highlightState!=="manual")return;
+ if(!match)return;
+ if(match.playerMode&&match.highlightState==="decision")return;
  match.paused=!match.paused;
  const label=match.paused?"ПРОДОЛЖИТЬ":"ПАУЗА";
  $("match-pause").textContent=label;$("player-match-pause").textContent=label;
- if(match.playerMode)setMomentUI(match.paused?"paused":"manual");
 }
 $("player-match-pause").onclick=togglePause;
-function updateTouchStick(){
- const node=$("touch-stick");
- node.style.transform="translate("+Math.round(joystick.x*32)+"px,"+Math.round(joystick.y*32)+"px)";
-}
-const pad=$("touch-pad");
-function setJoystick(e){
- const r=pad.getBoundingClientRect();
- let x=(e.clientX-(r.left+r.width/2))/(r.width*.38);
- let y=(e.clientY-(r.top+r.height/2))/(r.height*.38);
- const len=Math.hypot(x,y);
- if(len>1){x/=len;y/=len}
- joystick={x,y};if(Math.hypot(x,y)>.15)lastAim=normalizeDirection(joystick,lastAim);updateTouchStick();
-}
-pad.addEventListener("pointerdown",e=>{e.preventDefault();joystickActive=true;pad.setPointerCapture(e.pointerId);setJoystick(e)});
-pad.addEventListener("pointermove",e=>{if(joystickActive)setJoystick(e)});
-function stopJoystick(){joystickActive=false;joystick={x:0,y:0};updateTouchStick()}
-pad.addEventListener("pointerup",stopJoystick);pad.addEventListener("pointercancel",stopJoystick);
+$("player-match-speed").onchange=()=>{
+ if(match?.playerMode)match.speed=Number($("player-match-speed").value)||1;
+};
 function updateScore(){
  if(!match)return;
  $("match-score").textContent=match.score[0]+" : "+match.score[1];
@@ -526,14 +456,15 @@ function finishMatch(record){
    w.events??=[];w.events.unshift(w.club+" "+a+":"+b+" "+match.opponent);
    if(match.playerMode){
     const result=a>b?"win":a===b?"draw":"loss";
-    const profile=ensurePlayerProfile(w);
-    const info=matchProgress(profile,match.individual,result);
-    w.events.unshift("Личный матч: "+match.individual.goals+" гол., "+match.individual.assists+" гол. пас., "+match.individual.tackles+" отбор. +"+info.points+" очк. тренировки");
+    const info=matchProgress(ensurePlayerProfile(w),match.individual,result);
+    w.events.unshift("ИИ сыграл матч за футболиста: "+match.individual.goals+" гол., "+match.individual.assists+" гол. пас., "+match.individual.saves+" сейвов. +"+info.points+" очк. тренировок.");
+   }else{
+    const finance=finishCoachMatch(w,a,b,match.opponent);
+    w.events.unshift("Билеты +"+finance.finance.gross.toLocaleString("ru-RU")+" € · расходы "+finance.finance.expenses.toLocaleString("ru-RU")+" € · "+finance.place+"-е место.");
    }
    w.events=w.events.slice(0,12);store();
   }
  }
- joystick={x:0,y:0};movementKeys.clear();updateTouchStick();
  match=null;saveIdDuringMatch=null;go("career");
 }
 function frame(now){
@@ -549,129 +480,36 @@ function move(p,x,y,dt,speed){
  p.x=bound(p.x,34,966);p.y=bound(p.y,34,556);
 }
 
-function stepHighlight(dt){
- const m=match;
- if(!m?.playerMode||m.paused||screen!=="match")return;
- dt=Math.min(.05,Math.max(0,dt));
- if(m.highlightState==="net"){
-  advanceBall(m.ball,dt);
-  m.netHold-=dt;
-  if(m.netHold<=0)nextMoment(m.lastGoalMessage||"Гол!");
-  return;
- }
- if(m.highlightState!=="manual")return;
- m.elapsed+=dt;m.secondsRemaining=Math.max(0,m.secondsRemaining-dt);
- const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
- const pressed=k=>movementKeys.has(k);
- let dx=joystick.x+Number(pressed("d")||pressed("arrowright"))-Number(pressed("a")||pressed("arrowleft"));
- let dy=joystick.y+Number(pressed("s")||pressed("arrowdown"))-Number(pressed("w")||pressed("arrowup"));
- let len=Math.hypot(dx,dy);
- if(len>.08){
-  dx/=Math.max(1,len);dy/=Math.max(1,len);
-  lastAim=normalizeDirection({x:dx,y:dy},lastAim);
-  const speed=(88+profile.skills.pace*.75)*(.65+.35*profile.fitness/100);
-  p.x=bound(p.x+dx*speed*dt,FIELD.left+15,FIELD.right-15);
-  p.y=bound(p.y+dy*speed*dt,FIELD.top+15,FIELD.bottom-15);
- }
- // Teammates and opponents continue to move under AI, while the user controls exactly one player.
- for(const [team,players] of [[0,m.home],[1,m.away]]){
-  for(let i=0;i<players.length;i++){
-   if(team===0&&i===m.controlIdx)continue;
-   const q=players[i];
-   if(i===0){
-    const gx=team===0?FIELD.left+23:FIELD.right-23;
-    move(q,gx,295+(m.ball.y-295)*.17,dt,110);
-    continue;
-   }
-   const owner=Boolean(m.owner&&m.owner.team===team&&m.owner.idx===i);
-   let tx=q.x,ty=q.y;
-   if(owner){
-    tx=q.x+(team===0?90:-85)*dt;
-   }else if(team===0){
-    tx=bound(p.x-85+(i%4)*43,FIELD.left+65,FIELD.right-55);
-    ty=bound(p.y+(i%5-2)*61,FIELD.top+35,FIELD.bottom-35);
-   }else{
-    tx=bound(m.ball.x+55+(i%3)*42,FIELD.left+45,FIELD.right-70);
-    ty=bound(m.ball.y+(i%4-2)*45,FIELD.top+35,FIELD.bottom-35);
-   }
-   move(q,tx,ty,dt,owner?85:60);
+function stepPlayerCareer(dt){
+ const m=match;if(!m?.playerMode||m.paused)return;
+ if(m.highlightState==="resolve"){
+  const result=tickResolution(m,dt);
+  if(result.done){
+   const outcome=m.resolution?.outcome,scored=m.resolution?.goal;
+   if(outcome?.saved)m.individual.saves++;
+   const message=outcome?.saved?"СЕЙВ! Вратарь спас ворота.":scored?
+    outcome?.assisted?"Партнёр завершил атаку! Голевая передача.":"ГОЛ! Мяч оказался в сетке.":
+    outcome?.conceded?"Соперник реализовал шанс.":"Атака остановлена. Мяч не в воротах.";
+   addEvent(message);
+   m.highlightState="watch";m.resolution=null;
+   m.owner={team:scored?1:Math.random()<.5?0:1,idx:9};
+   m.ball={x:500,y:295,vx:0,vy:0,inNet:null};m.aiTimer=1;
+   $("moment-info").hidden=true;
+   $("moment-status").textContent=message+" ИИ продолжает матч.";
   }
+  updateScore();updatePlayerHUD();return;
  }
- if(m.owner){
-  const holder=(m.owner.team===0?m.home:m.away)[m.owner.idx];
-  const dir=m.owner.team===0?1:-1;
-  m.ball.x=holder.x+dir*14;m.ball.y=holder.y;
-  m.ball.vx=0;m.ball.vy=0;
-  if(m.owner.team===0&&m.owner.idx!==m.controlIdx){
-   m.aiTimer+=dt;
-   if(m.aiTimer>1.55){
-    m.aiTimer=0;
-    if(holder.x>765){
-     const aim=normalizeDirection({x:FIELD.right-holder.x,y:295-holder.y});
-     shootBall(m.ball,holder,aim,370);
-     m.lastShooter={team:0,idx:m.owner.idx};
-     m.lastKick="shot";m.owner=null;m.ballRecover=.3;
-     addEvent("Партнёр пробил по воротам.");
-    }else{
-     const aim=normalizeDirection({x:p.x-holder.x,y:p.y-holder.y});
-     shootBall(m.ball,holder,aim,270);
-     m.lastShooter=null;m.lastKick="teammate-pass";
-     m.owner=null;m.ballRecover=.22;
-    }
-   }
-  }else if(m.owner.team===1){
-   m.aiTimer+=dt;
-   if(m.aiTimer>1.8){
-    m.aiTimer=0;
-    const aim=normalizeDirection({x:FIELD.left-holder.x,y:295-holder.y});
-    shootBall(m.ball,holder,aim,350);
-    m.lastShooter={team:1,idx:m.owner.idx};
-    m.owner=null;m.lastKick="shot";m.ballRecover=.35;
-   }
-  }else m.aiTimer=0;
- }else{
-  m.ballRecover=Math.max(0,(m.ballRecover||0)-dt);
-  const goal=advanceBall(m.ball,dt);
-  if(goal){
-   const scored=goal==="right"?0:1;
-   m.score[scored]++;
-   if(scored===0&&m.lastShooter?.team===0&&m.lastShooter.idx===m.controlIdx){
-    m.individual.goals++;m.lastGoalMessage="ГОЛ! Ты сам забил мяч в настоящие ворота!";
-   }else if(scored===0){
-    if(m.assistPending){m.individual.assists++;m.assistPending=false;}
-    m.lastGoalMessage="ГОЛ! Команда завершила атаку.";
-   }else m.lastGoalMessage="Гол соперника.";
-   addEvent(m.lastGoalMessage);
-   m.highlightState="net";m.netHold=1.6;
-   setMomentUI("net");$("moment-info").hidden=false;$("moment-timer").textContent="ГОЛ!";
-   updateScore();updatePlayerHUD();return;
-  }
-  if(m.ballRecover<=0&&Math.hypot(m.ball.vx,m.ball.vy)<280){
-   const contenders=[
-    {team:0,idx:m.controlIdx,p:m.home[m.controlIdx]},
-    ...m.home.map((q,i)=>({team:0,idx:i,p:q})).filter(c=>c.idx!==m.controlIdx),
-    ...m.away.map((q,i)=>({team:1,idx:i,p:q}))
-   ];
-   const nearest=contenders.map(c=>({...c,d:Math.hypot(c.p.x-m.ball.x,c.p.y-m.ball.y)})).sort((a,b)=>a.d-b.d)[0];
-   if(nearest?.d<22){
-    m.owner={team:nearest.team,idx:nearest.idx};
-    if(nearest.team===1)m.assistPending=false;
-    m.ball.vx=0;m.ball.vy=0;m.aiTimer=0;
-   }
-  }
- }
- if(m.secondsRemaining<=0){
-  addEvent("Момент закончился. Остальное время симулируется.");
-  nextMoment("Время эпизода закончилось.");
-  return;
- }
- $("moment-timer").textContent=Math.ceil(m.secondsRemaining)+" СЕК.";
+ if(m.highlightState!=="watch")return;
+ const logs=tickSpectator(m,dt);
+ for(const log of logs)addEvent(log);
+ const next=m.decisions[m.decisionIndex+1];
+ if(next&&m.elapsed>=next.minute*60){openDecision();return}
+ if(m.elapsed>=5400){addEvent("Финальный свисток.");finishMatch(true);return}
  updateScore();updatePlayerHUD();
 }
-
 function step(dt){
  if(!match)return;
- if(match.playerMode){stepHighlight(dt);return}
+ if(match.playerMode){stepPlayerCareer(dt);return}
  const m=match;m.elapsed=Math.min(5400,m.elapsed+dt*52);
  if(m.playerMode){
   const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
@@ -825,9 +663,9 @@ function drawMatch(){
  for(const x of [L+95,R-95]){
   ctx.beginPath();ctx.fillStyle="#f3fff3";ctx.arc(x,295,3,0,Math.PI*2);ctx.fill();
  }
- const arrow=Boolean(m.playerMode&&m.highlightState==="manual"),control=m.home[m.controlIdx];
+ const arrow=false,control=m.home[m.controlIdx];
  if(arrow){
-  const aim=currentAim(),distance=75;
+  const aim={x:1,y:0},distance=75;
   ctx.strokeStyle="#ffe16d";ctx.fillStyle="#ffe16d";ctx.lineWidth=4;
   ctx.beginPath();ctx.moveTo(control.x,control.y);ctx.lineTo(control.x+aim.x*distance,control.y+aim.y*distance);ctx.stroke();
   const ex=control.x+aim.x*distance,ey=control.y+aim.y*distance;
@@ -867,20 +705,5 @@ function drawMatch(){
  ctx.beginPath();ctx.fillStyle="#12261c";ctx.arc(m.ball.x,m.ball.y,2,0,Math.PI*2);ctx.fill();
 }
 window.addEventListener("resize",()=>{if(screen==="tactics")drawBoard()});
-window.addEventListener("keydown",e=>{
- const k=e.key.toLowerCase();
- if(k==="escape"&&screen!=="home"){$("back-btn").click();return}
- if(screen!=="match"||!match?.playerMode)return;
- if(["w","a","s","d","arrowup","arrowdown","arrowleft","arrowright"].includes(k)){
-  e.preventDefault();movementKeys.add(k);
- }else if(!e.repeat&&["j","k","l","r"].includes(k)){
-  e.preventDefault();
-  if(k==="j")playerPass();
-  if(k==="k")playerShoot();
-  if(k==="l")playerTackle();
-  if(k==="r")playerCallForPass();
- }
-});
-window.addEventListener("keyup",e=>movementKeys.delete(e.key.toLowerCase()));
-window.addEventListener("blur",()=>{movementKeys.clear();joystick={x:0,y:0};updateTouchStick()});
+window.addEventListener("keydown",e=>{if(e.key==="Escape"&&screen!=="home")$("back-btn").click()});
 go("home");
