@@ -1,0 +1,460 @@
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Inter:wght@400;500;600;700;800;900&display=swap');
+/*
+ * GAMEFOOTBALL / MANAGER 26
+ * Original football-game inspired UI. No EA assets, logos, screenshots or brand art.
+ * Dark arena, ultraviolet shadows, electric lime calls to action, condensed headings.
+ */
+:root{
+ --fc-ink:#080a13;--fc-night:#101322;--fc-panel:#181c2d;
+ --fc-panel2:#20263a;--fc-line:#31354a;--fc-text:#f7f8fa;
+ --fc-muted:#999eb2;--fc-lime:#caff45;--fc-purple:#8858ff;
+ --fc-light:#e9ebf4;--fc-rose:#fd537d;
+ font-family:Inter,ui-sans-serif,system-ui,Arial,sans-serif;
+ color:var(--fc-text);background:var(--fc-ink);
+}
+*{scrollbar-color:#404459 #0e111c}
+body{background:#080a13;color:var(--fc-text)}
+#app{
+ background:radial-gradient(ellipse 52% 42% at 95% 9%,#33265c91,transparent 85%),
+ radial-gradient(ellipse 50% 35% at 5% 100%,#17224499,transparent 100%),
+ linear-gradient(135deg,#080a13,#101221 72%,#090c19);
+ overflow-x:hidden;min-height:100dvh;
+}
+#app::before{
+ content:"";position:absolute;inset:70px 0 auto;height:1px;z-index:1;pointer-events:none;
+ background:linear-gradient(90deg,transparent,#cefc6044,transparent)
+}
+button,input,select{font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+button{transition:background .16s,border-color .16s,transform .16s,color .16s,filter .16s}
+button:hover{filter:brightness(1.14)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--fc-lime);outline-offset:3px}
+.eyebrow{color:var(--fc-lime);font-weight:850;letter-spacing:2px;font-size:10px}
+.fine{color:var(--fc-muted)!important;line-height:1.6}
+.topbar{
+ height:72px;padding:0 clamp(16px,2.6vw,46px);
+ display:flex;align-items:center;gap:clamp(12px,2vw,28px);
+ background:linear-gradient(95deg,#080a14f9,#141628f9);
+ border-bottom:1px solid #858da52c;position:relative;z-index:50;
+ box-shadow:0 8px 32px #03040977
+}
+.brand{flex:0 0 auto;gap:11px;font-size:14px;line-height:1;letter-spacing:.7px;color:#fff}
+.brand .brand-accent{color:var(--fc-lime)}
+.brand em{font-size:9px;letter-spacing:3px;color:#c6c9d8;margin-top:7px}
+.brand .crest{
+ width:48px;height:45px;border:1px solid #dafa92!important;
+ border-radius:2px!important;clip-path:polygon(0 0,100% 0,100% 76%,75% 100%,0 100%);
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ line-height:.91;font-family:"Barlow Condensed",Impact,sans-serif;font-size:23px;letter-spacing:-1px;
+ font-weight:900;color:#0b0d16;background:var(--fc-lime)!important;
+}
+.crest-number{font-family:Inter,sans-serif;font-size:8px;font-weight:900;letter-spacing:3px}
+.manager-nav{display:flex;align-items:center;gap:3px;min-width:0;flex:1;overflow-x:auto;scrollbar-width:none;height:100%}
+.manager-nav::-webkit-scrollbar{display:none}
+.manager-nav button{
+ height:100%;flex:0 0 auto;padding:0 clamp(9px,1.1vw,18px);
+ background:transparent;border:0;border-bottom:3px solid transparent;color:#b7bac9;
+ font-size:10px;letter-spacing:.8px;font-weight:850;text-transform:uppercase;
+}
+.manager-nav button.current,.manager-nav button:hover{color:#fff;border-bottom-color:var(--fc-lime);background:linear-gradient(0deg,#d4ff2f13,transparent 64%)}
+.top-right{gap:10px;flex:0 0 auto;margin-left:auto}
+.top-right .dot{background:var(--fc-lime);box-shadow:0 0 16px #bdff4d70}
+#world-label{font-size:10px;letter-spacing:1px;color:#aeb5c7;white-space:nowrap}
+.back{
+ background:#1c2030;border:1px solid #5b607a70;padding:9px 13px;
+ border-radius:0;clip-path:polygon(0 0,100% 0,100% 74%,92% 100%,0 100%);
+ color:#e7e9f2;font-weight:850;font-size:10px;letter-spacing:1px;
+}
+.panel-screen{max-width:1600px;margin:auto;padding:clamp(20px,3vw,43px) clamp(16px,4vw,64px) 60px}
+.page-head{margin-bottom:25px;position:relative}
+.page-head h2,.home-copy h1,.dashboard-feature h3{
+ font-family:"Barlow Condensed",Impact,"Arial Narrow",sans-serif;
+ font-weight:900;letter-spacing:.4px;text-transform:uppercase;
+}
+.page-head h2{font-size:clamp(36px,5.2vw,68px);line-height:.9;margin:0 0 11px}
+.page-head.compact h2{font-size:clamp(34px,4vw,54px)}
+.page-head p:not(.eyebrow){color:var(--fc-muted);font-size:13px;max-width:850px}
+.page-head .eyebrow{margin-bottom:11px}
+.accent-dot{color:var(--fc-lime)}
+.primary,.main-actions button.primary,.career-actions button.primary,.form-card button.primary,.tactics-aside button.primary{
+ background:var(--fc-lime)!important;color:#0b1112!important;border:1px solid var(--fc-lime)!important;
+ box-shadow:0 12px 35px #b8fa3a22!important;
+ font-weight:900;text-transform:uppercase;letter-spacing:.55px;border-radius:2px;
+}
+.primary:hover,.main-actions button.primary:hover{background:#e2ff88!important}
+button:disabled{filter:grayscale(.65);opacity:.5;cursor:not-allowed}
+#home{min-height:calc(100dvh - 72px)}
+.stadium{
+ background:radial-gradient(ellipse 36% 42% at 66% 37%,#57478c8c,transparent 90%),
+ linear-gradient(116deg,#090b18,#19223a 45%,#242a3f 85%)!important;
+}
+.stadium::before{
+ content:"";position:absolute;inset:-40% -5% auto 46%;height:180%;
+ background:repeating-linear-gradient(105deg,transparent 0 82px,#d6ecfe08 83px 84px,transparent 85px 145px);
+ transform:skewX(-11deg);pointer-events:none;
+}
+.stadium::after{
+ background:linear-gradient(90deg,#090b18 0%,#090b18e8 24%,#090b1865 50%,#090b1830 100%),
+ linear-gradient(0deg,#090a15f2,transparent 40%)!important;
+}
+.stadium .people{filter:contrast(1.06) saturate(.85) drop-shadow(0 12px 38px #03030b)}
+.stadium .field-perspective{filter:grayscale(.25) hue-rotate(30deg) brightness(.67)}
+.home-copy{max-width:800px;min-height:calc(100dvh - 110px);padding:clamp(40px,8vh,90px) 0 95px clamp(22px,5vw,85px)}
+.home-copy h1{font-size:clamp(54px,7.4vw,119px);line-height:.79;letter-spacing:-1.8px;margin:0 0 25px;text-shadow:0 12px 50px #0008}
+.home-copy h1 span{color:var(--fc-lime)}
+.home-kicker{font-size:11px;letter-spacing:2.7px;margin-bottom:21px}
+.home-kicker span{color:#dadce9}
+.lead{font-size:clamp(13px,1.35vw,17px);color:#b7bbca;max-width:390px;line-height:1.55;margin-bottom:30px}
+.main-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-width:485px}
+.main-actions button{
+ min-height:53px;padding:14px 15px;font-size:10px;font-weight:900;
+ letter-spacing:.5px;border-radius:2px!important;background:#181c2bdc!important;
+ border:1px solid #52566d77!important;box-shadow:none!important;
+ text-align:left;clip-path:polygon(0 0,100% 0,100% 82%,95% 100%,0 100%);
+}
+.main-actions button:hover{border-color:#d7ff6977!important;background:#2b2e44!important}
+.main-actions button.primary{grid-column:1/-1;min-height:64px;font-size:16px;clip-path:polygon(0 0,100% 0,100% 85%,97% 100%,0 100%)}
+.main-actions button span.end{font-size:16px;line-height:1}
+.home-footer{color:#a1a7bb;letter-spacing:1.6px;font-size:10px}
+.choice-grid,.choice-grid.solo{max-width:900px}
+.choice-grid.solo{grid-template-columns:1fr}
+.choice-card{
+ min-height:270px;padding:30px 35px;border:1px solid #64647d76;border-radius:4px;
+ background:radial-gradient(ellipse at 88% 10%,#473887aa,transparent 68%),linear-gradient(115deg,#1d2035,#111625);
+ box-shadow:0 16px 50px #05071166;position:relative;overflow:hidden;
+}
+.choice-card::before{content:"";position:absolute;inset:0 auto 0 0;width:5px;background:var(--fc-lime)}
+.choice-card::after{content:"26";position:absolute;right:18px;top:-10px;font:900 225px "Barlow Condensed",Impact,sans-serif;color:#eef6ff07;pointer-events:none}
+.choice-card .big-symbol{font-size:50px;color:var(--fc-lime)}
+.choice-card strong:not(.big-symbol){font:800 clamp(24px,3vw,42px) "Barlow Condensed",Impact,sans-serif;letter-spacing:.1px}
+.choice-card span{color:#bec3d1}
+.choice-card .choice-index{font-size:10px;color:var(--fc-lime);font-weight:900;letter-spacing:2px}
+.choice-card .choice-cta{margin-top:auto;color:var(--fc-lime);font-size:12px;font-weight:900;letter-spacing:1px}
+.choice-cta b{margin-left:10px}
+.form-card{
+ width:min(650px,100%);border-radius:5px;border:1px solid #52556f87;
+ background:linear-gradient(135deg,#1c2032,#111522);padding:clamp(16px,3vw,34px);
+ box-shadow:0 18px 50px #04050e55;
+}
+.form-card label,.tactics-aside label,.match-aside label,.world-create-panel label{
+ color:#c4c7d6;font-size:10px;letter-spacing:1.3px;font-weight:850;
+}
+.form-card input:not([type=checkbox]),.form-card select,.world-create-panel select,.tactics-aside select,.match-aside select{
+ background:#0e1220;border:1px solid #555b757a;border-radius:2px;color:var(--fc-text);padding:13px;min-height:43px;
+}
+.form-card input:focus,.form-card select:focus{border-color:var(--fc-lime)}
+.world-create-panel{background:#121727;border:1px solid #424764;border-radius:3px;padding:18px}
+.form-card button.primary{padding:15px 19px;font-size:12px}
+.save-row{
+ border-radius:3px;background:linear-gradient(100deg,#1d2032,#101421);
+ border:1px solid #51566b8a;box-shadow:0 9px 25px #08091540;
+ padding:19px 22px;
+}
+.save-row strong{font:800 23px "Barlow Condensed",Impact,sans-serif}
+.save-row small{color:#9ba2b8}
+.save-row button,.subtle-btn{border-radius:2px;background:#292f47;color:#fff;border:1px solid #6c7190;font-size:11px;font-weight:900}
+.save-row button:not(.delete):hover{background:var(--fc-lime);color:#0e1020}
+.save-row button.delete{background:#4a2538;border-color:#89445f}
+.empty{background:#191d30;color:#bac1d1;border:1px dashed #5b647b}
+.dashboard{grid-template-columns:minmax(0,1.9fr) minmax(260px,.85fr);gap:15px;align-items:stretch}
+.dashboard-main,.side-card{
+ padding:0;border:0;border-radius:4px;background:transparent;min-width:0;color:#e8e9f3;
+}
+.dashboard-feature{
+ display:flex;justify-content:space-between;align-items:flex-end;gap:15px;
+ position:relative;overflow:hidden;padding:clamp(19px,3vw,33px);
+ min-height:205px;border:1px solid #474763a0;
+ background:radial-gradient(ellipse at 80% 0,#57448e88,transparent 50%),
+ linear-gradient(110deg,#2c2649,#191b30 68%,#151b2a);
+}
+.dashboard-feature::after{
+ content:"";pointer-events:none;position:absolute;inset:-42% -2% auto auto;
+ width:48%;height:155%;border:1px solid #c6ff4530;transform:rotate(23deg);
+ background:linear-gradient(160deg,#c6ff4509,transparent);
+}
+.dashboard-feature h3{font-size:clamp(47px,5.3vw,84px);line-height:.79;margin:4px 0 13px;color:#fff}
+.dashboard-feature p:not(.eyebrow){margin:0;color:#b8bbcf;font-size:12px;max-width:290px}
+.dashboard-feature .primary{font-size:12px;padding:16px 18px;white-space:nowrap;z-index:1}
+.career-figures-label{display:flex;justify-content:space-between;margin:24px 0 9px;color:#a4a9bd;font-size:10px;font-weight:900;letter-spacing:1.4px}
+.career-figures-label span:last-child{color:var(--fc-lime)}
+.figures{gap:7px}
+.figure{border-radius:2px;background:#1c2033;border:1px solid #3b405d;padding:15px 17px}
+.figure strong{font:800 clamp(30px,3vw,45px) "Barlow Condensed",Impact,sans-serif;line-height:1;color:#fff}
+.figure span{color:#abb3c8;font-size:9px;font-weight:800;letter-spacing:1px;margin-top:7px}
+.career-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:15px}
+.career-actions button{
+ position:relative;border-radius:2px;background:#1a1f31;border:1px solid #454a65;
+ min-height:91px;padding:16px 17px;display:flex;align-items:flex-start;justify-content:center;
+ flex-direction:column;gap:5px;letter-spacing:0;
+}
+.career-actions button:hover{border-color:var(--fc-lime);background:#293149}
+.career-actions button .tile-icon{font-size:28px;color:var(--fc-lime);line-height:1.1}
+.career-actions button strong{font:800 22px "Barlow Condensed",Impact,sans-serif;line-height:1}
+.career-actions button small{font-size:10px;color:#a9b0c3;font-weight:500;letter-spacing:0}
+.career-actions button b{position:absolute;right:14px;top:14px;font-size:16px;color:#b0bbc2}
+.side-card{
+ border:1px solid #454860;background:linear-gradient(166deg,#21233b,#121727);
+ padding:22px;display:flex;flex-direction:column;gap:10px;
+}
+.side-card .eyebrow{margin:0}
+.club-monogram{
+ width:110px;height:105px;display:grid;place-items:center;position:relative;
+ background:linear-gradient(150deg,#c9ff44,#8fb228);color:#141520;
+ font:900 58px "Barlow Condensed",Impact,sans-serif;
+ clip-path:polygon(8% 0,92% 0,100% 10%,100% 65%,50% 100%,0 65%,0 10%);
+}
+.club-monogram span{position:absolute;bottom:19px;font:900 12px Inter,sans-serif;letter-spacing:2px}
+.side-card h3{font:800 30px "Barlow Condensed",Impact,sans-serif;margin:1px 0}
+.side-card .finance-line{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid #ffffff17}
+.finance-line span{color:#949bb1;font-size:9px;font-weight:800;letter-spacing:.5px}
+.finance-line strong{color:#f6f7f9;font-size:12px;text-align:right;max-width:60%;overflow-wrap:anywhere}
+.coach-finance{padding:3px 0;background:transparent;border:0;margin:0}
+.news-title{margin-top:auto;border-top:1px solid #ffffff24;padding-top:15px;color:var(--fc-lime);font-weight:900;font-size:10px;letter-spacing:1.3px}
+#career-news{font-size:11px;line-height:1.6;color:#c2c4d3;max-height:105px;overflow:auto}
+#career-about,#career-world-note{font-size:11px;margin:0}
+#world-clubs.europe-leagues-grid{max-height:none;grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
+.europe-league-card{
+ border:1px solid #565a78;background:linear-gradient(135deg,#252640,#14182b);
+ border-radius:3px;min-height:130px;position:relative;overflow:hidden;
+}
+.europe-league-card::after{content:"26";position:absolute;right:6px;top:0;font:900 90px "Barlow Condensed",Impact,sans-serif;color:#ffffff08;pointer-events:none}
+.europe-league-card:hover{border-color:var(--fc-lime);background:#303452}
+.europe-league-card span{color:var(--fc-lime)}
+.world-screen .world-filters input,.world-screen .world-filters select{
+ color:#fff;background:#151927;border:1px solid #4d536c;border-radius:2px;
+}
+/* TRANSFER NETWORK / genuine two-pane navigable scouting */
+.transfer-screen{max-width:1630px;padding-bottom:60px}
+.transfer-screen .page-head{margin-bottom:18px}
+.transfer-screen .page-head.compact h2{font-size:clamp(43px,5vw,68px)}
+.transfer-stats{
+ display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;
+ border:1px solid #454a60;background:#454a60;margin-bottom:12px;
+}
+.transfer-stats>div{
+ background:#1b1f31;min-height:78px;display:grid;align-content:center;gap:6px;
+ padding:14px clamp(12px,1.4vw,22px);
+}
+.transfer-stats>div:first-child{background:linear-gradient(100deg,#302a53,#1b1f31)}
+.transfer-stats span{font-size:9px;color:#a8afc3;letter-spacing:1px;font-weight:850}
+.transfer-stats strong{font:800 clamp(20px,2.15vw,34px) "Barlow Condensed",Impact,sans-serif;color:#fff;white-space:nowrap}
+.transfer-stats>div:first-child strong{color:var(--fc-lime)}
+.transfer-stats .transfer-context strong{font-size:22px}
+.transfer-context i{font-style:normal;color:var(--fc-lime);font-size:11px;vertical-align:middle}
+.transfer-tabs{
+ display:flex;gap:2px;min-width:0;overflow:auto;scrollbar-width:none;
+ border-bottom:1px solid #484960;margin-bottom:13px;
+}
+.transfer-tabs button{
+ flex:1 0 auto;background:transparent;border:0;border-bottom:3px solid transparent;
+ min-height:47px;padding:12px clamp(9px,1.4vw,21px);
+ color:#a4a9bb;font-weight:900;font-size:10px;letter-spacing:.7px;text-align:left;
+}
+.transfer-tabs button.active{background:#caff450b;color:var(--fc-lime);border-bottom-color:var(--fc-lime)}
+.transfer-workspace{
+ display:grid;grid-template-columns:minmax(330px,1.1fr) minmax(310px,.9fr);
+ gap:12px;align-items:stretch;min-height:455px;
+}
+.transfer-directory,.transfer-detail{
+ background:linear-gradient(165deg,#1c1e31,#121624);
+ border:1px solid #45465e;border-radius:3px;min-width:0;
+}
+.transfer-directory{padding:18px 17px}
+.transfer-directory-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:15px}
+.transfer-directory-head>div{display:grid;gap:4px}
+.transfer-directory-head .eyebrow{margin:0;color:#8d91ad}
+.transfer-directory-head strong{font:800 23px "Barlow Condensed",Impact,sans-serif;line-height:1}
+#market-result-count{font-size:10px;font-weight:800;color:var(--fc-lime)}
+.transfer-filter-row{display:grid;grid-template-columns:minmax(120px,.65fr) minmax(155px,1.35fr);gap:7px;margin-bottom:9px}
+.transfer-filter-row label{font-size:9px;font-weight:800;letter-spacing:1px;color:#a5adc3;display:grid;gap:6px}
+.transfer-filter-row select,.transfer-filter-row input{
+ width:100%;min-width:0;background:#0d1220;color:#f1f3ff;border:1px solid #4a526b;
+ border-radius:2px;padding:11px;font-size:11px;min-height:38px;
+}
+.transfer-player-list,.transfer-history{
+ display:grid;align-content:start;gap:4px;overflow-y:auto;max-height:min(53dvh,500px);min-height:300px;
+}
+.transfer-player-row{
+ width:100%;display:grid;grid-template-columns:47px minmax(0,1fr) 42px minmax(67px,.5fr);
+ align-items:center;gap:12px;padding:10px 11px;text-align:left;min-height:65px;
+ border:1px solid #393d53;background:#181d2e;border-radius:2px;
+}
+.transfer-player-row:hover,.transfer-player-row.selected{background:#2e2a47;border-color:var(--fc-lime);box-shadow:inset 3px 0 0 var(--fc-lime)}
+.transfer-mini-portrait{
+ width:43px;height:46px;display:block;position:relative;overflow:hidden;
+ background:radial-gradient(circle at 60% 15%,#6957a8,#373853 63%,#1a2132);
+ border-radius:2px;
+}
+.transfer-mini-portrait .mini-portrait-head{position:absolute;width:16px;height:19px;border-radius:48%;background:#9992ae;left:13px;top:7px}
+.transfer-mini-portrait .mini-portrait-body{position:absolute;width:38px;height:23px;border-radius:16px 16px 0 0;background:#b7b0c4;left:3px;bottom:-4px}
+.transfer-row-identity{display:grid;gap:5px;min-width:0}
+.transfer-row-identity strong{font-size:12px;color:#fbfcff;font-weight:900;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.transfer-row-identity small{font-size:9px;color:#a6abbf;letter-spacing:.8px}
+.transfer-row-rating{display:grid;place-items:center;height:33px;min-width:39px;background:var(--fc-lime);color:#111521;font-weight:950;font-size:17px;font-family:"Barlow Condensed",Impact,sans-serif;clip-path:polygon(0 0,100% 0,100% 85%,86% 100%,0 100%)}
+.transfer-row-value{font-size:11px;font-weight:900;color:#c7cbe3;text-align:right;white-space:nowrap}
+.transfer-detail{display:flex;flex-direction:column;min-width:0}
+.transfer-profile-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:16px 19px 0}
+.transfer-profile-top .eyebrow{color:#a5a9c2;margin:0}
+#market-detail-tag{font-size:9px;letter-spacing:1px;font-weight:900;color:var(--fc-lime)}
+.transfer-profile-hero{
+ position:relative;display:flex;align-items:end;min-height:155px;padding:20px 18px 13px;gap:15px;
+ background:radial-gradient(ellipse at 20% 50%,#7656b372,transparent 62%),
+ linear-gradient(117deg,#30284d,#1b1c33 83%);
+ overflow:hidden;margin-top:11px;
+}
+.transfer-profile-hero::after{
+ content:"";width:260px;height:175px;position:absolute;right:-85px;top:-58px;transform:rotate(27deg);
+ border:1px solid #d6e8ff20;pointer-events:none
+}
+.transfer-avatar{width:91px;height:115px;flex:0 0 91px;position:relative;overflow:hidden}
+.transfer-avatar .avatar-head{position:absolute;width:41px;height:48px;left:24px;top:9px;border-radius:50%;background:linear-gradient(145deg,#e2bfd2,#9885b0);box-shadow:inset -7px -2px 0 #48415b55}
+.transfer-avatar .avatar-body{position:absolute;width:107px;height:84px;left:-9px;bottom:-27px;border-radius:50% 50% 12% 12%;background:linear-gradient(150deg,#c4c5db,#636d9b);border-top:5px solid #caff45}
+.transfer-identity{min-width:0;flex:1}
+.transfer-identity small{font-size:9px;letter-spacing:1.2px;font-weight:900;color:var(--fc-lime)}
+.transfer-identity h3{font:900 clamp(29px,3.5vw,50px) "Barlow Condensed",Impact,sans-serif;margin:5px 0 3px;line-height:.87;overflow-wrap:anywhere}
+.transfer-identity p{font-size:10px;letter-spacing:.4px;line-height:1.3;color:#c6c9df;margin:7px 0 0}
+.transfer-ovr{
+ flex:0 0 auto;align-self:start;padding:10px 10px 7px;
+ background:var(--fc-lime);font:900 34px "Barlow Condensed",Impact,sans-serif;color:#0f1720;
+ clip-path:polygon(0 0,100% 0,100% 83%,85% 100%,0 100%);line-height:.8;
+ display:grid;text-align:center;gap:3px;
+}
+.transfer-profile-hero .transfer-ovr{min-width:52px}
+.transfer-profile-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#3b4057}
+.transfer-profile-metrics>div{background:#191d2c;padding:14px 11px;display:grid;gap:6px;min-width:0}
+.transfer-profile-metrics span{font-size:9px;color:#a2a9ba;font-weight:800;letter-spacing:.6px}
+.transfer-profile-metrics strong{font:800 clamp(16px,1.7vw,23px) "Barlow Condensed",Impact,sans-serif;color:#f9faff;white-space:nowrap}
+.transfer-skill-bars{padding:14px 19px;display:grid;grid-template-columns:1fr 1fr;gap:11px 17px}
+.skill-bar-row{display:grid;gap:5px}
+.skill-bar-head{display:flex;justify-content:space-between;align-items:center;font-size:9px;font-weight:900;color:#a9b1c9;letter-spacing:.6px}
+.skill-bar-head strong{color:#f3f4fb;font-size:11px}
+.skill-bar-rail{height:3px;background:#373e55}
+.skill-bar-fill{height:3px;background:linear-gradient(90deg,#8b60ff,var(--fc-lime))}
+.transfer-negotiation{margin-top:auto;padding:15px 19px 18px;background:#101522;border-top:1px solid #393f55}
+.transfer-negotiation-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.transfer-negotiation-title>span{font:800 22px "Barlow Condensed",Impact,sans-serif}
+.transfer-negotiation-title small{color:#abb2ca;font-size:9px;letter-spacing:1px}
+.transfer-negotiation label{font-size:10px;color:#a4adc0;font-weight:800;letter-spacing:.7px}
+.offer-input-wrap{display:flex;align-items:center;gap:10px;margin-top:7px;background:#080d19;border:1px solid #555b71;padding:0 14px}
+.offer-input-wrap>span{font:900 21px "Barlow Condensed",Impact,sans-serif;color:var(--fc-lime)}
+.offer-input-wrap input{border:0;outline:0;width:100%;min-width:0;background:transparent;color:#fff;font-weight:850;font-size:16px;padding:13px 0;appearance:textfield}
+.transfer-button-row{display:grid;gap:7px;margin-top:10px}
+.transfer-button-row button{min-height:45px;text-align:center;font-size:11px;font-weight:950;border-radius:2px;padding:10px}
+.transfer-button-row button:not(.primary){color:#fff;background:#2f3449;border:1px solid #62687a}
+.transfer-secondary{min-height:35px;width:100%;margin-top:8px;border:1px solid #4c536d;background:#25293e;color:#e4e5f0;font-size:10px;letter-spacing:.7px;font-weight:900}
+.transfer-feedback{font-size:11px;color:#aab2c8;line-height:1.5;margin:11px 0 0}
+.transfer-empty{color:#9ca5bd;padding:26px 16px;border:1px dashed #484f69;text-align:center;font-size:12px;line-height:1.6}
+.transfer-history-row{display:flex;gap:14px;padding:14px;background:#222539;border:1px solid #41455d;color:#d6dae9;font-size:11px}
+.history-index{color:var(--fc-lime);font-weight:900}
+.transfer-disclaimer{font-size:10px;color:#858ca3;letter-spacing:.5px;margin-top:12px;line-height:1.55}
+.standings-wrapper{border:1px solid #4d526d;background:#161b2d;max-height:65dvh;border-radius:2px}
+.standings-table th{background:#22253c;color:#ccd2e1;font-weight:900;letter-spacing:1.1px}
+.standings-table td{border-color:#ffffff12;color:#d5d9e4}
+.standings-table tbody tr.our-club-row{background:#45436a;font-weight:900;color:#fff}
+.standings-table tbody tr.our-club-row td:first-child{color:var(--fc-lime)}
+.standings-table tbody tr:nth-child(odd):not(.our-club-row){background:#ffffff08}
+.stadium-preview{background:radial-gradient(circle at center,#273353,#121523);border:1px solid #505e7b;border-radius:3px}
+.stadium-center{background:repeating-linear-gradient(90deg,#246b49 0 33px,#2d7954 33px 66px)}
+.stand-block{border-color:#9fa4be;background:repeating-linear-gradient(45deg,#3b4969 0 10px,#6f7894 10px 15px,#222d46 15px 22px)}
+.stadium-upgrade{background:#1c2135;border:1px solid #444c69;border-radius:3px}
+.stadium-upgrade button{background:var(--fc-lime);border:1px solid var(--fc-lime);color:#111321;border-radius:2px;font-weight:900}
+.management-top{background:#1b2033;border:1px solid #424960;border-radius:2px}
+.management-top strong{color:var(--fc-lime)}
+.tactics-aside,.match-aside{background:#1a1f31;border:1px solid #434b65;border-radius:3px}
+.tactics-aside button,.match-aside button{background:#34384d;border:1px solid #636b84;border-radius:2px}
+.selected-card{background:#363151;border-left:3px solid var(--fc-lime);border-radius:2px}
+.selected-card strong{color:var(--fc-lime)}
+.pitch-wrap,.match-pitch{background:#142337;border:1px solid #687b98;border-radius:3px}
+.match-top{padding:12px 20px;background:#1c2033;border:1px solid #40445d}
+.match-top .score strong{color:var(--fc-lime);font-family:"Barlow Condensed",Impact,sans-serif;font-size:36px}
+.match-top strong{font-family:"Barlow Condensed",Impact,sans-serif;font-size:24px}
+.match-top button{border-radius:2px;background:#32364a;color:#fff}
+#toast{background:#2b3251;border:1px solid var(--fc-lime);border-radius:3px;color:#fff;font-weight:700}
+@media (max-width:1180px){
+ .brand{font-size:11px}.brand .crest{width:42px;height:41px}
+ .manager-nav button{padding:0 8px;font-size:9px}
+ #world-label{display:none}
+ .transfer-workspace{grid-template-columns:minmax(290px,1.05fr) minmax(295px,.95fr)}
+ .transfer-player-row{gap:8px;grid-template-columns:42px minmax(0,1fr) 38px 65px}
+}
+@media(max-width:850px){
+ .topbar{height:65px}.manager-nav button{font-size:9px}
+ .dashboard{grid-template-columns:1fr}
+ .dashboard-main{order:1}.side-card{order:2}
+ .side-card{display:grid;grid-template-columns:110px minmax(0,1fr);gap:9px;align-items:center}
+ .side-card .eyebrow,.side-card .finance-line,.side-card .news-title,.side-card #career-news{grid-column:1/-1}
+ .transfer-workspace{grid-template-columns:1fr}
+ .transfer-player-list,.transfer-history{max-height:340px;min-height:140px}
+ .transfer-detail{min-height:360px}
+ .stadium-layout{grid-template-columns:1fr}
+ .page-head h2{font-size:46px}
+}
+@media(max-width:610px){
+ .topbar{gap:5px;padding:0 12px}
+ .brand .crest{width:39px;height:38px}
+ .brand{font-size:10px}
+ .brand em{letter-spacing:1.1px;font-size:8px}
+ .manager-nav{max-width:48vw}
+ .manager-nav button{padding:0 7px}
+ .home-copy{padding:38px 19px 90px}
+ .home-copy h1{font-size:clamp(48px,13vw,80px)}
+ .main-actions{max-width:420px;grid-template-columns:1fr 1fr}
+ .main-actions button{padding:11px;font-size:9px}
+ .panel-screen{padding:21px 13px 55px}
+ .page-head.compact h2{font-size:38px}
+ .transfer-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .transfer-stats>div{min-height:67px;padding:12px}
+ .transfer-stats strong{font-size:23px}
+ .transfer-tabs button{padding:12px 10px;font-size:9px}
+ .transfer-directory{padding:12px}
+ .transfer-profile-hero{padding:14px 9px}
+ .transfer-avatar{width:65px;flex-basis:65px;height:95px}
+ .transfer-avatar .avatar-head{left:18px;width:32px;height:38px}
+ .transfer-avatar .avatar-body{left:-10px;width:88px}
+ .transfer-identity h3{font-size:33px}
+ .transfer-profile-metrics strong{font-size:15px}
+ .career-actions{grid-template-columns:repeat(2,1fr)}
+ .dashboard-feature{display:grid;min-height:180px}
+ .dashboard-feature .primary{justify-self:start}
+ .figures{grid-template-columns:repeat(4,1fr);gap:4px}
+ .figure{padding:10px}.figure strong{font-size:28px}.figure span{font-size:8px}
+ .choice-card{min-height:270px;padding:22px}
+ .stadium-preview{min-height:250px}
+}
+@media(max-height:475px) and (orientation:landscape){
+ .topbar{height:54px}.topbar .brand .crest{height:34px;width:38px}
+ .home-copy{padding-top:24px}
+ .home-copy h1{font-size:clamp(47px,6vw,70px);margin-bottom:9px}
+ .lead{margin-bottom:12px;font-size:12px}
+ .home-kicker{margin-bottom:7px}
+ .main-actions{max-width:450px;gap:5px}
+ .main-actions button{min-height:38px;padding:8px;font-size:9px}
+ .main-actions button.primary{min-height:45px}
+ .home-footer{display:none}
+ .panel-screen{padding-top:15px}
+ .page-head{margin-bottom:14px}.page-head h2{font-size:36px}
+ .page-head.compact h2{font-size:38px}
+ .transfer-stats>div{min-height:60px;padding:8px 12px}
+ .transfer-stats strong{font-size:22px}
+ .transfer-stats{margin-bottom:8px}
+ .transfer-tabs button{min-height:33px;padding:7px 12px}
+ .transfer-directory,.transfer-detail{padding-top:10px}
+ .transfer-workspace{grid-template-columns:minmax(300px,1fr) minmax(290px,1fr);gap:7px}
+ .transfer-player-list,.transfer-history{max-height:49dvh;min-height:120px}
+ .transfer-directory-head{margin-bottom:7px}
+ .transfer-profile-hero{min-height:98px;margin-top:4px}
+ .transfer-avatar{height:75px}.transfer-identity h3{font-size:26px}
+ .transfer-profile-top{padding-top:7px}
+ .transfer-profile-metrics>div{padding:8px}
+ .transfer-skill-bars{padding:7px 15px}
+ .transfer-negotiation{padding:7px 15px}
+ .transfer-negotiation-title{margin-bottom:4px}
+ .offer-input-wrap input{padding:7px 0}
+ .transfer-button-row button{min-height:33px}
+ .transfer-secondary{min-height:28px}
+ .transfer-feedback{margin-top:4px}
+ .dashboard-feature{min-height:120px}
+ .dashboard-feature h3{font-size:44px}
+ .career-actions button{min-height:72px}
+ .standings-wrapper{max-height:54dvh}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

@@ -17,7 +17,7 @@ export function ensureManagement(world){
    stadium:{name:"Стадион «"+world.club+"»",stands:[{seats:3000,level:1},{seats:3000,level:1},{seats:3000,level:1},{seats:3000,level:1}],ticketPrice:SEAT_PRICE},
    squad:Array.from({length:16},(_,i)=>({id:"draft-"+(i+1),name:"Игрок №"+String(i+1).padStart(2,"0"),position:i===0||i===11?"GK":i<=5?"CB":i<=10?"CM":"ST",rating:58+i%12,salary:15000,placeholder:true})),
    standings:[makeRow("our",world.club),...clubs.map((name,i)=>makeRow("opponent-"+(i+1),name))],
-   transferHistory:[],history:[],lastAttendance:0,lastRevenue:0,lastExpenses:0,
+   transferHistory:[],history:[],shortlist:[],negotiations:{},listings:{},lastAttendance:0,lastRevenue:0,lastExpenses:0,
    reputation:45,matchday:0
   };
  }
@@ -28,6 +28,10 @@ export function ensureManagement(world){
  if(!Array.isArray(m.squad))m.squad=[];
  if(!Array.isArray(m.standings))m.standings=[makeRow("our",world.club),...placeholderClubs(world).map((name,i)=>makeRow("opponent-"+(i+1),name))];
  if(!Array.isArray(m.transferHistory))m.transferHistory=[];
+ if(!Array.isArray(m.shortlist))m.shortlist=[];
+ if(!m.negotiations||typeof m.negotiations!=="object")m.negotiations={};
+ if(!m.listings||typeof m.listings!=="object")m.listings={};
+
  if(!Array.isArray(m.history))m.history=[];
  m.reputation=Number.isFinite(m.reputation)?m.reputation:45;
  m.matchday=Number.isFinite(m.matchday)?m.matchday:0;
@@ -98,32 +102,104 @@ export function finishCoachMatch(w,homeGoals,awayGoals,opponentName){
 const POSITIONS=["GK","CB","CM","ST"];
 export function getMarketCandidates(w){
  const m=ensureManagement(w);
- // Every candidate is deliberately anonymous: the user will provide real or invented rosters later.
- return Array.from({length:8},(_,i)=>{
-  const rating=57+(i*7+(m.matchday||0)*3)%26;
-  const position=POSITIONS[i%POSITIONS.length];
-  const fee=round((rating*rating*75)+i*42000);
-  return {id:"anon-"+m.matchday+"-"+i,name:"Кандидат №"+String(i+1).padStart(2,"0"),
-   position,rating,fee,salary:Math.round(fee*.025),placeholder:true};
- });
+ // Stable scouting candidates: prospects remain available across matches and in the shortlist.
+ if(!Array.isArray(m.scoutingPool)||!m.scoutingPool.length){
+  m.scoutingPool=Array.from({length:16},(_,i)=>{
+   const rating=57+(i*7+Math.floor(i/4)*2)%27;
+   const position=POSITIONS[i%POSITIONS.length];
+   const fee=round(rating*rating*75+i*23500);
+   return {id:"scout-"+(i+1),name:"Кандидат №"+String(i+1).padStart(2,"0"),
+    position,rating,fee,salary:Math.round(fee*.025),placeholder:true};
+  });
+ }
+ return m.scoutingPool;
 }
-export function buyCandidate(w,idValue){
+export function buyCandidate(w,idValue,agreedPrice=null){
  const m=ensureManagement(w),candidate=getMarketCandidates(w).find(c=>c.id===idValue);
  if(!candidate)return {ok:false,message:"Предложение уже недоступно."};
- if(m.balance<candidate.fee)return {ok:false,message:"Недостаточно денег для трансфера."};
+ if(m.squad.some(p=>p.sourceId===idValue))return {ok:false,message:"Этот футболист уже подписан."};
+ const price=Number.isFinite(agreedPrice)?Math.round(agreedPrice):candidate.fee;
+ if(!Number.isFinite(price)||price<0||price>candidate.fee*2)return {ok:false,message:"Некорректная стоимость трансфера."};
+ if(m.balance<price)return {ok:false,message:"Недостаточно денег для трансфера."};
  if(m.squad.length>=32)return {ok:false,message:"В заявке максимум 32 футболиста."};
- m.balance-=candidate.fee;
- const player={...candidate,id:"signed-"+id(Date.now())+"-"+m.squad.length};
+ m.balance-=price;
+ const player={...candidate,fee:price,sourceId:idValue,id:"signed-"+id(Date.now())+"-"+m.squad.length};
  m.squad.push(player);
- m.transferHistory.unshift("Покупка: "+candidate.name+" ("+candidate.position+") −"+candidate.fee.toLocaleString("ru-RU")+" €");
- return {ok:true,player,fee:candidate.fee};
+ m.transferHistory.unshift("Покупка: "+candidate.name+" ("+candidate.position+") −"+price.toLocaleString("ru-RU")+" €");
+ m.transferHistory=m.transferHistory.slice(0,35);
+ return {ok:true,player,fee:price};
 }
 export function sellPlayer(w,playerId){
  const m=ensureManagement(w),index=m.squad.findIndex(p=>p.id===playerId);
  if(index<0)return {ok:false,message:"Игрок отсутствует в заявке."};
  if(m.squad.length<=11)return {ok:false,message:"Для симуляции необходимо минимум 11 футболистов."};
- const p=m.squad[index],fee=p.fee?Math.round(p.fee*.65):Math.round(p.rating*p.rating*50);
- m.squad.splice(index,1);m.balance+=fee;
+ const p=m.squad[index],fee=m.listings?.[playerId]?.amount??(p.fee?Math.round(p.fee*.65):Math.round(p.rating*p.rating*50));
+ m.squad.splice(index,1);m.balance+=fee;delete m.listings[playerId];
  m.transferHistory.unshift("Продажа: "+p.name+" +"+fee.toLocaleString("ru-RU")+" €");
  return {ok:true,player:p,fee};
+}
+
+// Scouting and formal offer workflow. Nothing leaves the browser.
+export function toggleShortlist(w,candidateId){
+ const m=ensureManagement(w);
+ const available=getMarketCandidates(w).some(p=>p.id===candidateId);
+ if(!available)return {ok:false,message:"Футболист больше не доступен на рынке."};
+ const idx=m.shortlist.indexOf(candidateId);
+ if(idx>=0)m.shortlist.splice(idx,1);
+ else m.shortlist.push(candidateId);
+ return {ok:true,added:idx<0,count:m.shortlist.length};
+}
+export function getTransferOffer(w,candidateId){
+ return ensureManagement(w).negotiations[candidateId]||null;
+}
+export function submitTransferOffer(w,candidateId,amount){
+ const m=ensureManagement(w);
+ const candidate=getMarketCandidates(w).find(p=>p.id===candidateId);
+ if(!candidate)return {ok:false,message:"Игрок отсутствует на рынке."};
+ if(m.squad.some(p=>p.sourceId===candidateId))return {ok:false,message:"Этот игрок уже в твоей команде."};
+ const price=Math.round(Number(amount));
+ if(!Number.isFinite(price)||price<=0)return {ok:false,message:"Введи сумму предложения больше нуля."};
+ if(price>m.balance)return {ok:false,message:"Недостаточно средств для такого предложения."};
+ const required=candidate.fee;
+ let status="accepted",counterAmount=null,message="Клуб готов согласиться на предложенную сумму.";
+ if(price<required*.72){status="rejected";message="Клуб отклонил предложение — оно слишком далеко от оценки игрока."}
+ else if(price<required*.94){
+  status="counter";
+  counterAmount=Math.ceil(required*.94/10000)*10000;
+  message="Клуб предлагает встречную сумму: "+counterAmount.toLocaleString("ru-RU")+" €.";
+ }
+ const offer={candidateId,askingPrice:required,amount:price,counterAmount,status,createdMatchday:m.matchday};
+ m.negotiations[candidateId]=offer;
+ m.transferHistory.unshift("Переговоры: "+candidate.name+" · "+price.toLocaleString("ru-RU")+" € · "+status);
+ m.transferHistory=m.transferHistory.slice(0,35);
+ return {ok:true,offer,message};
+}
+export function acceptTransferCounter(w,candidateId){
+ const m=ensureManagement(w),offer=getTransferOffer(w,candidateId);
+ if(!offer||offer.status!=="counter")return {ok:false,message:"Нет встречного предложения."};
+ if(m.balance<offer.counterAmount)return {ok:false,message:"Бюджета недостаточно для встречного предложения."};
+ offer.amount=offer.counterAmount;offer.status="accepted";
+ return {ok:true,offer,message:"Клуб согласовал сумму "+offer.amount.toLocaleString("ru-RU")+" €. Подтверди подписание."};
+}
+export function finalizeTransfer(w,candidateId){
+ const m=ensureManagement(w),offer=getTransferOffer(w,candidateId);
+ if(!offer||offer.status!=="accepted")return {ok:false,message:"Сначала договорись с клубом о сумме трансфера."};
+ const res=buyCandidate(w,candidateId,offer.amount);
+ if(!res.ok)return res;
+ offer.status="completed";
+ m.shortlist=m.shortlist.filter(id=>id!==candidateId);
+ return {ok:true,player:res.player,fee:res.fee,message:"Трансфер оформлен!"};
+}
+export function listSquadPlayer(w,playerId){
+ const m=ensureManagement(w),p=m.squad.find(x=>x.id===playerId);
+ if(!p)return {ok:false,message:"Футболист не найден в заявке."};
+ if(m.squad.length<=11)return {ok:false,message:"Нельзя оставить меньше 11 футболистов."};
+ const value=Math.round(p.fee?p.fee*.75:p.rating*p.rating*50);
+ m.listings[playerId]={playerId,amount:value,listedMatchday:m.matchday};
+ return {ok:true,amount:value,message:"Игрок выставлен на трансфер. Получено предварительное предложение."};
+}
+export function acceptSaleOffer(w,playerId){
+ const m=ensureManagement(w),listing=m.listings[playerId];
+ if(!listing)return {ok:false,message:"Сначала выстави футболиста на трансфер."};
+ return sellPlayer(w,playerId);
 }
