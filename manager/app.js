@@ -220,143 +220,38 @@ function initPlayers(form,team){
  });
 }
 
-function displayDecision(){
- const m=match,moment=m.currentMoment;
- $("moment-overlay").hidden=false;$("moment-info").hidden=false;
- $("moment-count").textContent="ЭПИЗОД "+(m.decisionIndex+1)+" ИЗ "+m.decisions.length;
- $("moment-timer").textContent=moment.minute+"'";
- $("moment-stage").textContent="МАТЧ · "+moment.minute+"-Я МИНУТА";
- $("moment-title").textContent=moment.name;
- $("moment-description").textContent=moment.hint+" ИИ выполнит выбранное действие — вручную бегать и бить не нужно.";
- $("moment-last-result").textContent="";
- $("moment-options").replaceChildren();
- for(const action of getDecisionOptions(moment)){
-  const button=document.createElement("button");button.className="decision-option";
-  const name=document.createElement("strong");name.textContent=action.title;
-  const description=document.createElement("small");description.textContent=action.description;
-  button.append(name,description);
-  button.onclick=()=>submitChoice(action.id);
-  $("moment-options").append(button);
- }
- $("moment-status").textContent="Футболист действует автоматически. Ты выбираешь его решение в этом эпизоде.";
-}
-function openDecision(){
- const m=match;if(!m?.playerMode)return;
- m.decisionIndex++;
- m.currentMoment=m.decisions[m.decisionIndex];
- if(!m.currentMoment)return;
- arrangeDecision(m);m.highlightState="decision";m.paused=true;
- addEvent("Ключевой момент: "+m.currentMoment.name+".");
- if(m.autoDecisions)submitChoice(chooseAIOption());
- else displayDecision();
- updateScore();
-}
-function chooseAIOption(){
- const m=match;
- const options=getDecisionOptions(m?.currentMoment);
- const p=ensurePlayerProfile(active());
- // In autopilot, the AI favours useful options without guaranteeing a goal.
- const ranked=options.map(option=>({
-  id:option.id,
-  score:(p.skills[option.skill]||60)*.004+option.bonus-option.risk*.55+(Math.random()-.5)*.19
- })).sort((a,b)=>b.score-a.score);
- return ranked[0]?.id;
-}
-function submitChoice(id){
- const m=match;
- if(!m?.playerMode||m.highlightState!=="decision")return;
- const p=ensurePlayerProfile(active());
- const result=evaluateChoice(m.currentMoment,id,p.skills);
- if(!result.ok){toast(result.message);return}
- const opt=result.option;
- if(["assist","pass","pass-shot"].includes(opt.action))m.individual.passes++;
- else if(opt.action!=="save")m.individual.shots++;
- m.highlightState="resolve";m.paused=false;
- beginResolution(m,result);
- $("moment-overlay").hidden=true;
- $("moment-info").hidden=false;
- $("moment-timer").textContent="ИИ ИСПОЛНЯЕТ";
- $("moment-status").textContent="Решение: "+opt.title+". Смотри, как ИИ разыгрывает эпизод.";
- addEvent("Выбор: "+opt.title+".");
- lastFrame=performance.now();
-}
-$("moment-ai").onclick=()=>{
- if(match?.highlightState==="decision")submitChoice(chooseAIOption());
-};
-$("moment-ai-all").onclick=()=>{
- if(match?.highlightState!=="decision")return;
- match.autoDecisions=true;
- submitChoice(chooseAIOption());
- addEvent("Остальные решения доверены ИИ.");
-};
 function beginMatch(){
  const w=active();if(!w){go("saves");return}
- const playerMode=w.mode!=="coach";
- const profile=playerMode?ensurePlayerProfile(w):null;
- const controlIdx=playerMode?positionIndex(profile.position):null;
- if(!playerMode)ensureManagement(w);
- const opponent=playerMode?OPPONENTS[w.played%OPPONENTS.length]:getNextOpponent(w);
- match={
-  home:initPlayers(w.formation,0),away:initPlayers("442",1),
-  ball:{x:500,y:295,vx:0,vy:0,inNet:null},owner:{team:0,idx:9},
-  score:[0,0],elapsed:0,paused:false,speed:1,actionTimer:1.1,
-  events:[],eventsTimer:0,opponent,formation:w.formation,
-  completed:false,playerMode,controlIdx,
-  highlightState:playerMode?"watch":"full",
-  decisions:playerMode?makeDecisions(Math.random,profile.position):[],
-  decisionIndex:-1,autoDecisions:false,
-  individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0,saves:0},
-  aiTimer:1,netHold:0
- };
- if(playerMode){
-  const current=match.home[controlIdx].number;
-  const duplicate=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
-  if(duplicate)duplicate.number=current;
-  match.home[controlIdx].number=profile.number;
- }
+ ensureManagement(w);
+ const opponent=getNextOpponent(w);
+ match={home:initPlayers(w.formation,0),away:initPlayers("442",1),
+  ball:{x:500,y:295,vx:0,vy:0,inNet:null},
+  owner:{team:0,idx:9},score:[0,0],elapsed:0,paused:false,speed:1,
+  actionTimer:1.1,events:[],eventsTimer:0,opponent,
+  formation:w.formation,completed:false,coachNetHold:0,coachBallRecover:0};
  saveIdDuringMatch=w.id;
- $("match").classList.toggle("player-highlights",playerMode);
- $("match-kicker").textContent=playerMode?"КАРЬЕРА ИГРОКА · СИМУЛЯЦИЯ С РЕШЕНИЯМИ":"КАРЬЕРА ТРЕНЕРА · МАТЧ";
- $("match-fixture").textContent=w.club+" — "+opponent;
- $("coach-match-panel").hidden=playerMode;$("player-match-panel").hidden=!playerMode;
- $("match-formation").value=w.formation;
- $("match-speed").value="1";$("player-match-speed").value="1";
- $("match-pause").textContent="ПАУЗА";$("player-match-pause").textContent="ПАУЗА";
- $("player-match-name").textContent=playerMode?w.name.toUpperCase()+" · №"+profile.number:"";
- $("end-match").textContent="ПОКИНУТЬ МАТЧ";
- $("moment-overlay").hidden=true;$("moment-info").hidden=true;
- if(playerMode){
-  $("moment-status").textContent="ИИ играет за тебя. Дождись ключевого момента и выбери действие.";
-  addEvent("Начало матча! Ты наблюдаешь за своим футболистом — он отмечен золотым кругом.");
- }else addEvent("Команды вышли на поле. Тренер управляет схемой.");
- updateScore();updatePlayerHUD();
+ $("match-kicker").textContent="CAREER MODE  /  ЛИГА";
+ $("match-fixture").textContent=w.club+"  —  "+opponent;
+ $("match-formation").value=w.formation;$("match-speed").value="1";
+ $("match-pause").textContent="ПАУЗА";$("end-match").textContent="ЗАКРЫТЬ МАТЧ";
+ addEvent("Матч начался. Твоя команда на поле!");
+ updateScore();
  if(!raf){lastFrame=performance.now();raf=requestAnimationFrame(frame)}
 }
 function addEvent(s){
  if(!match)return;
  const minute=Math.min(90,Math.floor(match.elapsed/60)),line=String(minute)+"' "+s;
  match.events.unshift(line);match.events=match.events.slice(0,7);
- for(const id of ["match-events","player-match-events"]){
+ for(const id of ["match-events"]){
   const el=$(id);el.replaceChildren();
   for(const item of match.events){const p=document.createElement("p");p.textContent=item;el.append(p)}
  }
 }
-function updatePlayerHUD(){
- if(!match?.playerMode)return;
- const p=match.individual;
- $("player-match-hud").textContent="Голы: "+p.goals+" · Пасы: "+p.passes+" · Удары: "+p.shots+" · Отборы: "+p.tackles+(p.saves?" · Сейвы: "+p.saves:"");
-}
 function togglePause(){
  if(!match)return;
- if(match.playerMode&&match.highlightState==="decision")return;
  match.paused=!match.paused;
- const label=match.paused?"ПРОДОЛЖИТЬ":"ПАУЗА";
- $("match-pause").textContent=label;$("player-match-pause").textContent=label;
+ $("match-pause").textContent=match.paused?"ПРОДОЛЖИТЬ":"ПАУЗА";
 }
-$("player-match-pause").onclick=togglePause;
-$("player-match-speed").onchange=()=>{
- if(match?.playerMode)match.speed=Number($("player-match-speed").value)||1;
-};
 function updateScore(){
  if(!match)return;
  $("match-score").textContent=match.score[0]+" : "+match.score[1];
@@ -369,7 +264,6 @@ function reposition(){
 }
 $("match-formation").onchange=()=>{
  if(!match)return;
- if(match.playerMode){toast("Схему выбирает тренер команды");$("match-formation").value=match.formation;return}
  match.formation=$("match-formation").value;const w=active();if(w){w.formation=match.formation;store()}reposition();addEvent("Тренер меняет расстановку на "+formationName(match.formation)+".");
 };
 $("match-speed").onchange=()=>{if(match)match.speed=Number($("match-speed").value)};
@@ -380,19 +274,13 @@ function finishMatch(record){
  if(match&&record&&!match.completed){
   match.completed=true;
   const w=saves.find(s=>s.id===saveIdDuringMatch);
-  if(w){
+  if(w&&w.mode==="coach"){
    const a=match.score[0],b=match.score[1];w.played++;
    w.goalsFor+=a;w.goalsAgainst+=b;
    if(a>b)w.wins++;else if(a===b)w.draws++;else w.losses++;
    w.events??=[];w.events.unshift(w.club+" "+a+":"+b+" "+match.opponent);
-   if(match.playerMode){
-    const result=a>b?"win":a===b?"draw":"loss";
-    const info=matchProgress(ensurePlayerProfile(w),match.individual,result);
-    w.events.unshift("ИИ сыграл матч за футболиста: "+match.individual.goals+" гол., "+match.individual.assists+" гол. пас., "+match.individual.saves+" сейвов. +"+info.points+" очк. тренировок.");
-   }else{
-    const finance=finishCoachMatch(w,a,b,match.opponent);
-    w.events.unshift("Билеты +"+finance.finance.gross.toLocaleString("ru-RU")+" € · расходы "+finance.finance.expenses.toLocaleString("ru-RU")+" € · "+finance.place+"-е место.");
-   }
+   const finance=finishCoachMatch(w,a,b,match.opponent);
+   w.events.unshift("Билеты +"+finance.finance.gross.toLocaleString("ru-RU")+" € · расходы "+finance.finance.expenses.toLocaleString("ru-RU")+" € · "+finance.place+"-е место.");
    w.events=w.events.slice(0,12);store();
   }
  }
@@ -411,36 +299,8 @@ function move(p,x,y,dt,speed){
  p.x=bound(p.x,34,966);p.y=bound(p.y,34,556);
 }
 
-function stepPlayerCareer(dt){
- const m=match;if(!m?.playerMode||m.paused)return;
- if(m.highlightState==="resolve"){
-  const result=tickResolution(m,dt);
-  if(result.done){
-   const outcome=m.resolution?.outcome,scored=m.resolution?.goal;
-   if(outcome?.saved)m.individual.saves++;
-   const message=outcome?.saved?"СЕЙВ! Вратарь спас ворота.":scored?
-    outcome?.assisted?"Партнёр завершил атаку! Голевая передача.":"ГОЛ! Мяч оказался в сетке.":
-    outcome?.conceded?"Соперник реализовал шанс.":"Атака остановлена. Мяч не в воротах.";
-   addEvent(message);
-   m.highlightState="watch";m.resolution=null;
-   m.owner={team:scored?1:Math.random()<.5?0:1,idx:9};
-   m.ball={x:500,y:295,vx:0,vy:0,inNet:null};m.aiTimer=1;
-   $("moment-info").hidden=true;
-   $("moment-status").textContent=message+" ИИ продолжает матч.";
-  }
-  updateScore();updatePlayerHUD();return;
- }
- if(m.highlightState!=="watch")return;
- const logs=tickSpectator(m,dt);
- for(const log of logs)addEvent(log);
- const next=m.decisions[m.decisionIndex+1];
- if(next&&m.elapsed>=next.minute*60){openDecision();return}
- if(m.elapsed>=5400){addEvent("Финальный свисток.");finishMatch(true);return}
- updateScore();updatePlayerHUD();
-}
 function step(dt){
  if(!match)return;
- if(match.playerMode){stepPlayerCareer(dt);return}
  const m=match;m.elapsed=Math.min(5400,m.elapsed+dt*52);
  if(m.playerMode){
   const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
