@@ -4,6 +4,7 @@ import {makeDecisions,getDecisionOptions,evaluateChoice} from "./decision-engine
 import {ensureManagement,getNextOpponent,finishCoachMatch,stadiumCapacity} from "./management.js";
 import {initCoachUI} from "./coach-ui.js";
 import {getEuropeanLeague} from "./europe-data.js";
+import {arrangeDecision,tickSpectator,beginResolution,tickResolution} from "./spectator-engine.js";
 import {initWorldUI} from "./world-ui.js";
 
 "use strict";
@@ -288,149 +289,116 @@ function initPlayers(form,team){
  });
 }
 
-function isHighlightManual(){return Boolean(match?.playerMode&&match.highlightState==="manual"&&!match.paused&&screen==="match")}
-function currentAim(){
- let x=joystick.x,y=joystick.y;
- if(Math.hypot(x,y)<.15){
-  x=Number(movementKeys.has("d")||movementKeys.has("arrowright"))-Number(movementKeys.has("a")||movementKeys.has("arrowleft"));
-  y=Number(movementKeys.has("s")||movementKeys.has("arrowdown"))-Number(movementKeys.has("w")||movementKeys.has("arrowup"));
+function displayDecision(){
+ const m=match,moment=m.currentMoment;
+ $("moment-overlay").hidden=false;$("moment-info").hidden=false;
+ $("moment-count").textContent="ЭПИЗОД "+(m.decisionIndex+1)+" ИЗ "+m.decisions.length;
+ $("moment-timer").textContent=moment.minute+"'";
+ $("moment-stage").textContent="МАТЧ · "+moment.minute+"-Я МИНУТА";
+ $("moment-title").textContent=moment.name;
+ $("moment-description").textContent=moment.hint+" ИИ выполнит выбранное действие — вручную бегать и бить не нужно.";
+ $("moment-last-result").textContent="";
+ $("moment-options").replaceChildren();
+ for(const action of getDecisionOptions(moment)){
+  const button=document.createElement("button");button.className="decision-option";
+  const name=document.createElement("strong");name.textContent=action.title;
+  const description=document.createElement("small");description.textContent=action.description;
+  button.append(name,description);
+  button.onclick=()=>submitChoice(action.id);
+  $("moment-options").append(button);
  }
- if(Math.hypot(x,y)>=.15)lastAim=normalizeDirection({x,y},lastAim);
- return {...lastAim};
+ $("moment-status").textContent="Футболист действует автоматически. Ты выбираешь его решение в этом эпизоде.";
 }
-function setMomentUI(state){
- const player=Boolean(match?.playerMode);
- $("moment-overlay").hidden=!player||state!=="prompt";
- $("player-mobile-controls").hidden=!player||state!=="manual";
- $("moment-info").hidden=!player||state!=="manual";
-}
-function betweenHighlights(){
- const m=match;if(!m)return;
- const gap=randomGapScore();
- m.score[0]+=gap.home;m.score[1]+=gap.away;
- if(gap.home||gap.away)addEvent("В другое время матча забили: "+(gap.home?"хозяева ":"")+(gap.away?"гости":"")+".");
+function openDecision(){
+ const m=match;if(!m?.playerMode)return;
+ m.decisionIndex++;
+ m.currentMoment=m.decisions[m.decisionIndex];
+ if(!m.currentMoment)return;
+ arrangeDecision(m);m.highlightState="decision";m.paused=true;
+ addEvent("Ключевой момент: "+m.currentMoment.name+".");
+ if(m.autoDecisions)submitChoice(chooseAIOption());
+ else displayDecision();
  updateScore();
 }
-function prepareMoment(){
- const m=match,h=m.currentMoment,p=m.home[m.controlIdx],wing=h.kind==="wing",side=m.highlightIndex%2?1:-1;
- const isKeeper=ensurePlayerProfile(active()).position==="GK";
- p.x=isKeeper?FIELD.left+24:h.kind==="counter"?620:wing?680:730;
- p.y=isKeeper?295:wing?295+side*112:295+side*(36+Math.random()*25);
- for(let i=0;i<m.home.length;i++){
-  if(i===m.controlIdx)continue;
-  const q=m.home[i];
-  q.x=i===0?FIELD.left+18:Math.max(FIELD.left+25,Math.min(FIELD.right-100,p.x-115+(i%4)*60));
-  q.y=i===0?295:Math.max(65,Math.min(525,p.y+(i%5-2)*67));
- }
- for(let i=0;i<m.away.length;i++){
-  const q=m.away[i];
-  q.x=i===0?FIELD.right-22:Math.min(885,Math.max(550,p.x+105+(i%3)*25));
-  q.y=i===0?295:Math.max(65,Math.min(525,90+(i*53+m.highlightIndex*19)%405));
- }
- m.owner={team:0,idx:m.controlIdx};
- if(isKeeper){
-  m.owner={team:1,idx:9};
-  m.away[9].x=FIELD.left+225;m.away[9].y=295+side*54;
- }
- if(!isKeeper&&h.kind==="through"){
-  const passer=m.controlIdx===9?8:9;
-  m.owner={team:0,idx:passer};
-  m.home[passer].x=p.x-90;m.home[passer].y=p.y-25;
- }
- const q=(m.owner.team===0?m.home:m.away)[m.owner.idx];
- m.ball={x:q.x+12,y:q.y,vx:0,vy:0,inNet:null};
- m.ballRecover=0;m.lastKick=null;m.lastShooter=null;m.assistPending=false;m.aiTimer=0;m.netHold=0;
- lastAim={x:1,y:0};
-}
-function nextMoment(previous=""){
- const m=match;if(!m?.playerMode)return;
- if(m.highlightIndex>=0)betweenHighlights();
- m.highlightIndex++;
- if(m.highlightIndex>=m.moments.length){
-  m.elapsed=5400;addEvent("Финальный свисток.");finishMatch(true);return;
- }
- m.currentMoment=m.moments[m.highlightIndex];
- const keeper=ensurePlayerProfile(active()).position==="GK";
- if(keeper){m.currentMoment={...m.currentMoment,kind:"keeper",title:"Удар по твоим воротам",hint:"Вратарские моменты сейчас рассчитываются ИИ. Ручное управление появится позже."};}
- $("moment-play").disabled=keeper;
- $("moment-play").textContent=keeper?"РУЧНОЙ РЕЖИМ ВРАТАРЯ В РАЗРАБОТКЕ":"▶ СЫГРАТЬ МОМЕНТ";
- m.elapsed=m.currentMoment.minute*60;m.highlightState="prompt";m.paused=true;
- m.secondsRemaining=m.currentMoment.duration;prepareMoment();
- $("moment-stage").textContent="ЭПИЗОД "+(m.highlightIndex+1)+" ИЗ "+m.moments.length+" · "+m.currentMoment.minute+"'";
- $("moment-title").textContent=m.currentMoment.title.toUpperCase();
- $("moment-description").textContent=m.currentMoment.hint+" Сыграть самому или доверить момент ИИ?";
- $("moment-last-result").textContent=previous;
- $("moment-count").textContent="МОМЕНТ "+(m.highlightIndex+1)+" / "+m.moments.length;
- $("moment-timer").textContent=Math.ceil(m.secondsRemaining)+" СЕК.";
- $("moment-status").textContent="Всё время между эпизодами симулируется. Выбери, как сыграть этот момент.";
- addEvent("Момент игрока: "+m.currentMoment.title.toLowerCase());
- setMomentUI("prompt");updateScore();updatePlayerHUD();
-}
-function simulateCurrent(){
- const m=match;if(!m?.playerMode||m.highlightState!=="prompt")return "";
+function chooseAIOption(){
+ const m=match;
+ const options=getDecisionOptions(m?.currentMoment);
  const p=ensurePlayerProfile(active());
- if(p.position==="GK"){
-  const save=Math.random()<.24+p.skills.defending*.007;
-  let message;
-  if(save){m.individual.saves++;message="Вратарь совершил сейв! Соперник не забил.";}
-  else{m.score[1]++;message="Соперник реализовал момент — пропущенный мяч.";}
-  addEvent(message);updateScore();updatePlayerHUD();return message;
- }
- const result=simulateMoment(p,m.currentMoment);
- m.individual.shots+=result.shots;m.individual.passes+=result.passes;
- let message="ИИ отыграл эпизод, но гола не получилось.";
- if(result.goal){m.score[0]++;m.individual.goals++;message="ИИ забил гол за "+active().name+"!";}
- else if(result.assist){m.score[0]++;m.individual.assists++;message="ИИ сделал голевую передачу от твоего имени!";}
- addEvent(message);updateScore();updatePlayerHUD();return message;
+ // In autopilot, the AI favours useful options without guaranteeing a goal.
+ const ranked=options.map(option=>({
+  id:option.id,
+  score:(p.skills[option.skill]||60)*.004+option.bonus-option.risk*.55+(Math.random()-.5)*.19
+ })).sort((a,b)=>b.score-a.score);
+ return ranked[0]?.id;
 }
-$("moment-play").onclick=()=>{
- if(!match?.playerMode||match.highlightState!=="prompt"||ensurePlayerProfile(active()).position==="GK")return;
- match.highlightState="manual";match.paused=false;setMomentUI("manual");
- $("moment-status").textContent="Стик слева задаёт направление движения, удара и паса.";
+function submitChoice(id){
+ const m=match;
+ if(!m?.playerMode||m.highlightState!=="decision")return;
+ const p=ensurePlayerProfile(active());
+ const result=evaluateChoice(m.currentMoment,id,p.skills);
+ if(!result.ok){toast(result.message);return}
+ const opt=result.option;
+ if(["assist","pass","pass-shot"].includes(opt.action))m.individual.passes++;
+ else if(opt.action!=="save")m.individual.shots++;
+ m.highlightState="resolve";m.paused=false;
+ beginResolution(m,result);
+ $("moment-overlay").hidden=true;
+ $("moment-info").hidden=false;
+ $("moment-timer").textContent="ИИ ИСПОЛНЯЕТ";
+ $("moment-status").textContent="Решение: "+opt.title+". Смотри, как ИИ разыгрывает эпизод.";
+ addEvent("Выбор: "+opt.title+".");
  lastFrame=performance.now();
+}
+$("moment-ai").onclick=()=>{
+ if(match?.highlightState==="decision")submitChoice(chooseAIOption());
 };
-$("moment-ai").onclick=()=>{const message=simulateCurrent();if(message)nextMoment(message)};
 $("moment-ai-all").onclick=()=>{
- const m=match;if(!m?.playerMode||m.highlightState!=="prompt")return;
- while(match&&m.highlightIndex<m.moments.length){
-  simulateCurrent();
-  if(m.highlightIndex===m.moments.length-1)break;
-  betweenHighlights();m.highlightIndex++;m.currentMoment=m.moments[m.highlightIndex];
-  m.elapsed=m.currentMoment.minute*60;
- }
- if(match){m.elapsed=5400;finishMatch(true)}
+ if(match?.highlightState!=="decision")return;
+ match.autoDecisions=true;
+ submitChoice(chooseAIOption());
+ addEvent("Остальные решения доверены ИИ.");
 };
 function beginMatch(){
  const w=active();if(!w){go("saves");return}
- const playerMode=w.mode!=="coach",profile=playerMode?ensurePlayerProfile(w):null;
+ const playerMode=w.mode!=="coach";
+ const profile=playerMode?ensurePlayerProfile(w):null;
  const controlIdx=playerMode?positionIndex(profile.position):null;
- const opponent=OPPONENTS[w.played%OPPONENTS.length];
- match={home:initPlayers(w.formation,0),away:initPlayers("442",1),
-  ball:{x:500,y:295,vx:0,vy:0,inNet:null},owner:{team:0,idx:9},score:[0,0],elapsed:0,
-  paused:playerMode,speed:1,actionTimer:1.1,events:[],eventsTimer:0,opponent,
-  formation:w.formation,completed:false,playerMode,controlIdx,
-  highlightState:playerMode?"prompt":"full",moments:playerMode?createMoments():[],
-  highlightIndex:-1,secondsRemaining:0,assistPending:false,
-  individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0,saves:0}};
+ if(!playerMode)ensureManagement(w);
+ const opponent=playerMode?OPPONENTS[w.played%OPPONENTS.length]:getNextOpponent(w);
+ match={
+  home:initPlayers(w.formation,0),away:initPlayers("442",1),
+  ball:{x:500,y:295,vx:0,vy:0,inNet:null},owner:{team:0,idx:9},
+  score:[0,0],elapsed:0,paused:false,speed:1,actionTimer:1.1,
+  events:[],eventsTimer:0,opponent,formation:w.formation,
+  completed:false,playerMode,controlIdx,
+  highlightState:playerMode?"watch":"full",
+  decisions:playerMode?makeDecisions(Math.random,profile.position):[],
+  decisionIndex:-1,autoDecisions:false,
+  individual:{goals:0,assists:0,passes:0,shots:0,tackles:0,requests:0,saves:0},
+  aiTimer:1,netHold:0
+ };
  if(playerMode){
   const current=match.home[controlIdx].number;
-  const other=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
-  if(other)other.number=current;
+  const duplicate=match.home.find(p=>p.number===profile.number&&p!==match.home[controlIdx]);
+  if(duplicate)duplicate.number=current;
   match.home[controlIdx].number=profile.number;
  }
- joystick={x:0,y:0};lastAim={x:1,y:0};movementKeys.clear();updateTouchStick();
  saveIdDuringMatch=w.id;
  $("match").classList.toggle("player-highlights",playerMode);
- $("match-kicker").textContent=playerMode?"КАРЬЕРА ИГРОКА · КЛЮЧЕВЫЕ МОМЕНТЫ":"ТРЕНЕР · ПОЛНЫЙ МАТЧ";
+ $("match-kicker").textContent=playerMode?"КАРЬЕРА ИГРОКА · СИМУЛЯЦИЯ С РЕШЕНИЯМИ":"КАРЬЕРА ТРЕНЕРА · МАТЧ";
  $("match-fixture").textContent=w.club+" — "+opponent;
  $("coach-match-panel").hidden=playerMode;$("player-match-panel").hidden=!playerMode;
- $("match-formation").value=w.formation;$("match-speed").value="1";
+ $("match-formation").value=w.formation;
+ $("match-speed").value="1";$("player-match-speed").value="1";
  $("match-pause").textContent="ПАУЗА";$("player-match-pause").textContent="ПАУЗА";
  $("player-match-name").textContent=playerMode?w.name.toUpperCase()+" · №"+profile.number:"";
- $("end-match").textContent=playerMode?"ПОКИНУТЬ МАТЧ":"ЗАВЕРШИТЬ ПРОСМОТР";
- if(playerMode)nextMoment();
- else{setMomentUI("full");addEvent("Начало матча.");updateScore()}
- updatePlayerHUD();
+ $("end-match").textContent="ПОКИНУТЬ МАТЧ";
+ $("moment-overlay").hidden=true;$("moment-info").hidden=true;
+ if(playerMode){
+  $("moment-status").textContent="ИИ играет за тебя. Дождись ключевого момента и выбери действие.";
+  addEvent("Начало матча! Ты наблюдаешь за своим футболистом — он отмечен золотым кругом.");
+ }else addEvent("Команды вышли на поле. Тренер управляет схемой.");
+ updateScore();updatePlayerHUD();
  if(!raf){lastFrame=performance.now();raf=requestAnimationFrame(frame)}
 }
 function addEvent(s){
