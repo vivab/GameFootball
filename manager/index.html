@@ -3,15 +3,21 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#091711">
-  <title>GameFootball — Career Prototype</title>
+  <meta name="theme-color" content="#090b15">
+  <title>GAMEFOOTBALL 26 — Manager Career</title>
   <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./fc26-ui.css">
 </head>
 <body>
   <main id="app">
     <header class="topbar">
-      <button class="brand" data-go="home" aria-label="Главное меню"><span class="crest">GF</span><span>GAMEFOOTBALL <em>CAREER</em></span></button>
-      <div class="top-right"><span class="dot"></span><span id="world-label">НОВАЯ ЭПОХА ФУТБОЛА</span><button id="back-btn" class="back" hidden>← НАЗАД</button></div>
+      <button class="brand" data-go="home" aria-label="Главное меню"><span class="crest">GF<span class="crest-number">26</span></span><span>GAME<span class="brand-accent">FOOTBALL</span> <em>MANAGER CAREER</em></span></button>
+      <nav id="manager-nav" class="manager-nav" hidden aria-label="Разделы карьеры">
+ <button data-go="career">ЦЕНТР</button><button data-go="market">ТРАНСФЕРЫ</button>
+ <button data-go="tactics">ТАКТИКА</button><button data-go="standings">ТАБЛИЦА</button>
+ <button data-go="stadium-manager">СТАДИОН</button>
+ </nav>
+ <div class="top-right"><span class="dot"></span><span id="world-label">MANAGER CAREER  /  26</span><button id="back-btn" class="back" hidden>← НАЗАД</button></div>
     </header>
     <section id="home" class="screen active">
       <div class="stadium" aria-hidden="true">
@@ -41,7 +47,7 @@
           </g>
         </svg>
       </div>
-      <div class="home-copy"><p class="eyebrow">ТВОЙ ФУТБОЛ. ТВОЯ ИСТОРИЯ.</p><h1>НАПИШИ СВОЮ<br><span>ЛЕГЕНДУ.</span></h1><p class="lead">Создай свою карьеру в европейской лиге. Смотри матчи и принимай решения.</p>
+      <div class="home-copy"><p class="eyebrow home-kicker">THE NEXT GENERATION OF MANAGEMENT <span>· 26</span></p><h1>ТВОЙ КЛУБ.<br><span>ТВОИ ПРАВИЛА.</span></h1><p class="lead">Стань главным тренером. Построй команду, управляй трансферами и приведи клуб к трофеям.</p>
         <nav class="main-actions">
           <button class="primary xl" data-go="play"><span>▶</span> ИГРАТЬ <span class="end">→</span></button>
           <button data-go="saves">МОЯ КАРЬЕРА <span class="end">↗</span></button>
@@ -51,18 +57,19 @@
           <button data-go="settings">НАСТРОЙКИ <span class="end">⚙</span></button>
         </nav>
       </div>
-      <footer class="home-footer"><span>EARLY PROTOTYPE · 2D CAREER</span><span>ГОРИЗОНТАЛЬНЫЙ РЕЖИМ РЕКОМЕНДУЕТСЯ</span></footer>
+      <footer class="home-footer"><span>GF26 · MANAGER CAREER · BETA</span><span>ГОРИЗОНТАЛЬНЫЙ РЕЖИМ РЕКОМЕНДУЕТСЯ</span></footer>
     </section>
     <section id="play" class="screen panel-screen">
-      <div class="page-head"><p class="eyebrow">ТВОЙ СЛЕДУЮЩИЙ ШАГ</p><h2>НАЧНИ ИСТОРИЮ</h2><p>Каждая карьера — отдельный мир с собственным сезоном и результатами.</p></div>
+      <div class="page-head"><p class="eyebrow">CAREER HUB / 01</p><h2>ТВОЯ КАРЬЕРА</h2><p>Создай новый клуб или продолжи путь к чемпионству.</p></div>
       <div class="choice-grid"><button class="choice-card" data-go="new"><strong class="big-symbol">＋</strong><strong>НОВАЯ КАРЬЕРА</strong><span>Создать новый футбольный мир</span></button><button class="choice-card" data-go="saves"><strong class="big-symbol">↗</strong><strong>ПРОДОЛЖИТЬ</strong><span>Загрузить свой футбольный мир</span></button></div>
     </section>
     <section id="new" class="screen panel-screen">
-      <div class="page-head"><p class="eyebrow">НОВАЯ КАРЬЕРА</p><h2>КЕМ ТЫ СТАНЕШЬ?</h2></div>
-      <div class="choice-grid">
-        <button class="choice-card" data-type="coach"><strong class="big-symbol">♛</strong><strong>ТРЕНЕР</strong><span>Управляй клубом, составом и тактикой</span></button>
-        <button class="choice-card" data-type="custom"><strong class="big-symbol">⚽</strong><strong>СВОЙ ИГРОК</strong><span>Создай футболиста и развивай его карьеру</span></button>
-      </div>
+      <div class="page-head"><p class="eyebrow">NEW CAREER / CREATE YOUR LEGACY</p><h2>КАРЬЕРА ТРЕНЕРА</h2><p>Один режим — полный контроль над клубом, финансами, трансферами и тактикой.</p></div>
+ <div class="choice-grid solo"><button class="choice-card" data-type="coach">
+ <span class="choice-index">01 / FULL MANAGER CAREER</span><strong class="big-symbol">♛</strong>
+ <strong>НАЧАТЬ КАРЬЕРУ ТРЕНЕРА</strong><span>Создай собственный клуб в одной из европейских лиг. С нуля — к чемпионскому титулу.</span>
+ <span class="choice-cta">НАСТРОИТЬ КАРЬЕРУ <b>↗</b></span>
+ </button></div>
     </section>
     <section id="create" class="screen panel-screen">
       <div class="page-head"><p class="eyebrow">НАСТРОЙКА МИРА</p><h2 id="create-title">НОВАЯ КАРЬЕРА</h2><p id="create-hint"></p></div>
@@ -75,8 +82,7 @@
           <label for="create-league">ЛИГА</label><select id="create-league"></select>
         </div>
         <label id="club-label" for="entry-club">Клуб</label><input id="entry-club" name="club" maxlength="36" required autocomplete="off" value="Мой клуб">
-        <div id="position-wrap" hidden><label for="entry-position">ПОЗИЦИЯ ФУТБОЛИСТА</label><select id="entry-position"><option value="ST">Нападающий</option><option value="CM">Полузащитник</option><option value="CB">Защитник</option><option value="GK">Вратарь</option></select></div>
-        <button class="primary" type="submit">СОЗДАТЬ МИР →</button>
+                <button class="primary" type="submit">СОЗДАТЬ МИР →</button>
       </form>
     </section>
     <section id="saves" class="screen panel-screen">
@@ -84,18 +90,28 @@
     </section>
     <section id="career" class="screen panel-screen">
       <div class="page-head"><p class="eyebrow" id="career-type"></p><h2 id="career-name">МОЯ КАРЬЕРА</h2><p id="career-meta"></p></div>
-      <div id="coach-dashboard" class="dashboard"><div class="dashboard-main"><p class="eyebrow">КАБИНЕТ ТРЕНЕРА</p><div id="career-figures" class="figures"></div><p id="career-about" class="fine"></p><p id="career-world-note" class="fine"></p><div class="career-actions"><button class="primary" data-go="match">▶ СЛЕДУЮЩИЙ МАТЧ</button><button data-go="tactics">ТАКТИКА</button><button data-go="market">ТРАНСФЕРЫ</button><button data-go="standings">ТАБЛИЦА ЛИГИ</button><button data-go="stadium-manager">СТАДИОН</button></div><div id="coach-finance" class="coach-finance"></div></div><div class="side-card"><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="career-news">Твоя история только начинается.</div></div></div>
-      <div id="player-dashboard" class="player-dashboard" hidden>
-        <div class="player-main">
-          <div class="player-identity"><div class="jersey" aria-hidden="true"><span id="player-shirt-number">9</span></div><div><p class="eyebrow">МОЙ ФУТБОЛИСТ</p><h3 id="player-position">Нападающий</h3><p id="player-details" class="fine"></p><span id="player-status" class="status-tag">Основной состав</span></div><div class="player-overall"><strong id="player-overall">60</strong><small>ОБЩИЙ РЕЙТИНГ</small></div></div>
-          <div class="player-metrics" id="player-metrics"></div>
-          <div class="player-train-head"><div><h3>ИНДИВИДУАЛЬНЫЕ ТРЕНИРОВКИ</h3><p class="fine">Зарабатывай очки в матчах и улучшай своего футболиста.</p></div><strong class="training-points" id="training-points">3 ОЧКА</strong></div>
-          <div class="skill-grid" id="player-skills"></div>
-          <div class="career-actions player-actions"><button class="primary" data-go="match">▶ СМОТРЕТЬ МАТЧ</button><button id="player-rest">ВОССТАНОВЛЕНИЕ</button></div>
-          <p id="player-feedback" class="fine">Твоим футболистом управляет ИИ. Ты наблюдаешь за игрой и выбираешь решения в ключевых моментах.</p><p id="player-world-note" class="fine"></p>
-        </div>
-        <aside class="player-sidebar"><p class="eyebrow">АГЕНТ И КОНТРАКТ</p><h3>МОЯ КАРЬЕРА</h3><p id="player-contract" class="fine"></p><div id="player-offers" class="offers"></div><hr><p class="eyebrow">ПОСЛЕДНИЕ СОБЫТИЯ</p><div id="player-news" class="fine"></div></aside>
-      </div>
+      <div id="coach-dashboard" class="dashboard">
+ <div class="dashboard-main">
+  <div class="dashboard-feature">
+   <div><p class="eyebrow">MANAGER HUB / MATCH DAY</p><h3>СЛЕДУЮЩИЙ<br>МАТЧ</h3><p>Приготовь команду. Прими решения до стартового свистка.</p></div>
+   <button class="primary xl" data-go="match">▶ НАЧАТЬ МАТЧ <span class="end">↗</span></button>
+  </div>
+  <div class="career-figures-label"><span>СЕЗОН В ЦИФРАХ</span><span>LIVE STATISTICS</span></div>
+  <div id="career-figures" class="figures"></div>
+  <div class="career-actions">
+   <button data-go="market"><span class="tile-icon">⇄</span><strong>ТРАНСФЕРЫ</strong><small>Скаутинг и переговоры</small><b>↗</b></button>
+   <button data-go="tactics"><span class="tile-icon">◈</span><strong>ТАКТИКА</strong><small>Схемы и установки</small><b>↗</b></button>
+   <button data-go="standings"><span class="tile-icon">▥</span><strong>ТАБЛИЦА</strong><small>Твоё место в лиге</small><b>↗</b></button>
+   <button data-go="stadium-manager"><span class="tile-icon">▰</span><strong>СТАДИОН</strong><small>Трибуны и доход</small><b>↗</b></button>
+  </div>
+ </div>
+ <aside class="side-card">
+  <p class="eyebrow">CLUB OVERVIEW</p><div class="club-monogram" aria-hidden="true">GF<span>26</span></div>
+  <h3>МОЙ КЛУБ</h3><p id="career-about" class="fine"></p><p id="career-world-note" class="fine"></p>
+  <div id="coach-finance" class="coach-finance"></div>
+  <div class="news-title">ПОСЛЕДНИЕ СОБЫТИЯ</div><div id="career-news">Твоя история только начинается.</div>
+ </aside>
+ </div>
     </section>
     <section id="tactics" class="screen panel-screen tactics-screen">
       <div class="page-head compact"><p class="eyebrow">ПЕРСОНАЛЬНЫЕ УКАЗАНИЯ</p><h2>ТАКТИЧЕСКАЯ ДОСКА</h2><p>Выбери игрока и проведи пальцем по полю, чтобы нарисовать маршрут.</p></div>
@@ -114,33 +130,8 @@
       <div class="match-grid">
         <div class="match-pitch">
           <canvas id="match-canvas" width="1000" height="590" aria-label="Футбольный матч 11 на 11, ворота с сеткой"></canvas>
-          <div id="moment-info" class="moment-info" hidden>
-            <span id="moment-count">МОМЕНТ 1 ИЗ 5</span>
-            <strong id="moment-timer">17 СЕК.</strong>
-          </div>
-          <div id="moment-overlay" class="moment-overlay" hidden>
-            <div class="moment-card">
-              <span class="eyebrow" id="moment-stage">КЛЮЧЕВОЙ ЭПИЗОД</span>
-              <h3 id="moment-title">ТВОЁ РЕШЕНИЕ</h3>
-              <p id="moment-description">Футболист действует сам — выбери, что он попытается сделать.</p>
-              <div id="moment-options" class="decision-options"></div>
-              <div class="decision-footer">
-                <button id="moment-ai">ПУСТЬ ИИ РЕШИТ</button>
-                <button id="moment-ai-all">ВСЕ РЕШЕНИЯ — ИИ</button>
-              </div>
-              <p id="moment-last-result" class="moment-last-result"></p>
-            </div>
-          </div>
         </div>
         <aside id="coach-match-panel" class="match-aside"><p class="eyebrow">ТРЕНЕРСКАЯ ПАНЕЛЬ</p><label for="match-formation">СМЕНИТЬ СХЕМУ</label><select id="match-formation"><option value="433">4-3-3</option><option value="442">4-4-2</option><option value="343">3-4-3</option></select><label for="match-speed">СКОРОСТЬ</label><select id="match-speed"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select><button id="match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button><button id="match-edit">ИЗМЕНИТЬ ТАКТИКУ</button><div id="match-events" class="events" aria-live="polite"></div></aside>
-        <aside id="player-match-panel" class="match-aside player-match-aside" hidden>
-          <p class="eyebrow">КАРЬЕРА ФУТБОЛИСТА</p><strong id="player-match-name">ИГРОК №9</strong>
-          <p id="player-match-hud" class="fine">Голы: 0 · Передачи: 0</p>
-          <p id="moment-status" class="fine">В матче тебе будут выпадать отдельные игровые эпизоды.</p>
-          <p class="fine match-help">Футболист двигается сам. Твои решения появляются в ключевых эпизодах; между ними матч идёт автоматически.</p><label for="player-match-speed">СКОРОСТЬ ПРОСМОТРА</label><select id="player-match-speed"><option value="1">×1</option><option value="2">×2</option><option value="4">×4</option></select>
-          <button id="player-match-pause">ПАУЗА / ПРОДОЛЖИТЬ</button>
-          <div id="player-match-events" class="events" aria-live="polite"></div>
-        </aside>
       </div>
     </section>
     <section id="world" class="screen panel-screen world-screen">
@@ -150,12 +141,62 @@
       <div id="world-counter" class="fine"></div>
       <div id="world-clubs" class="europe-leagues-grid"></div>
     </section>
-    <section id="market" class="screen panel-screen">
-      <div class="page-head compact"><p class="eyebrow">КАРЬЕРА ТРЕНЕРА</p><h2>ТРАНСФЕРНЫЙ РЫНОК</h2><p>Пока здесь временные анонимные кандидаты. Реальные составы появятся после того, как мы их добавим.</p></div>
-      <div class="management-top"><strong id="market-budget"></strong><span id="market-squad-total"></span></div>
-      <h3 class="mini-heading">ПРЕДЛОЖЕНИЯ</h3><div id="market-list" class="management-grid"></div>
-      <h3 class="mini-heading">ТВОЯ ЗАЯВКА</h3><div id="squad-list" class="management-grid"></div>
-      <div id="market-history" class="fine"></div>
+    <section id="market" class="screen panel-screen transfer-screen">
+      <div class="page-head compact"><p class="eyebrow">CAREER / TRANSFER HUB</p><h2>ТРАНСФЕРЫ<span class="accent-dot">.</span></h2><p>Футбольный рынок • поиск талантов • переговоры с клубами</p></div>
+      <div class="transfer-stats">
+        <div><span>ТРАНСФЕРНЫЙ БЮДЖЕТ</span><strong id="market-budget">€ 0</strong></div>
+        <div><span>ЗАЯВКА КЛУБА</span><strong id="market-squad-total">0 игроков</strong></div>
+        <div><span>В СПИСКЕ НАБЛЮДЕНИЯ</span><strong id="market-shortlist-count">0</strong></div>
+        <div class="transfer-context"><span>TRANSFER WINDOW</span><strong>ОТКРЫТО <i>●</i></strong></div>
+      </div>
+      <div class="transfer-tabs" role="tablist" aria-label="Разделы трансферов">
+        <button id="market-tab-scout" class="active" role="tab" aria-selected="true">01  ПОИСК ИГРОКОВ</button>
+        <button id="market-tab-shortlist" role="tab" aria-selected="false">02  СПИСОК НАБЛЮДЕНИЯ</button>
+        <button id="market-tab-squad" role="tab" aria-selected="false">03  МОЙ СОСТАВ</button>
+        <button id="market-tab-history" role="tab" aria-selected="false">04  ИСТОРИЯ</button>
+      </div>
+      <div class="transfer-workspace">
+        <div class="transfer-directory">
+          <div class="transfer-directory-head"><div><span class="eyebrow">GLOBAL TRANSFER NETWORK</span><strong id="market-list-title">ДОСТУПНЫЕ ИГРОКИ</strong></div><span id="market-result-count"></span></div>
+          <div class="transfer-filter-row">
+            <label for="market-filter-position">ПОЗИЦИЯ<select id="market-filter-position"><option value="">Все позиции</option><option value="GK">Вратарь</option><option value="CB">Защитник</option><option value="CM">Полузащитник</option><option value="ST">Нападающий</option></select></label>
+            <label for="market-search">ПОИСК<input id="market-search" placeholder="По номеру игрока…" autocomplete="off"></label>
+          </div>
+          <div id="market-list" class="transfer-player-list"></div>
+          <div id="shortlist-list" class="transfer-player-list" hidden></div>
+          <div id="squad-list" class="transfer-player-list" hidden></div>
+          <div id="market-history" class="transfer-history" hidden></div>
+        </div>
+        <aside id="market-detail-panel" class="transfer-detail">
+          <div class="transfer-profile-top"><span class="eyebrow">PLAYER DETAILS / SCOUT REPORT</span><span id="market-detail-tag">SCOUTED</span></div>
+          <div class="transfer-profile-hero">
+            <div class="transfer-avatar" aria-hidden="true"><span class="avatar-head"></span><span class="avatar-body"></span></div>
+            <div class="transfer-identity"><small id="market-detail-position">—</small><h3 id="market-detail-name">Выбери игрока</h3><p id="market-detail-subtitle">Доступные футболисты в списке слева</p></div>
+            <div class="transfer-ovr" id="market-detail-rating">--<span>OVR</span></div>
+          </div>
+          <div class="transfer-profile-metrics">
+            <div><span>СТОИМОСТЬ</span><strong id="market-detail-value">—</strong></div>
+            <div><span>ЗАРПЛАТА</span><strong id="market-detail-wage">—</strong></div>
+            <div><span>ПОЗИЦИЯ</span><strong id="market-detail-role">—</strong></div>
+          </div>
+          <div class="transfer-skill-bars" id="market-skill-bars"></div>
+          <div id="market-offer-area" class="transfer-negotiation">
+            <div class="transfer-negotiation-title"><span>ПЕРЕГОВОРЫ</span><small>TRANSFER OFFER</small></div>
+            <label for="market-offer-input">СУММА ПРЕДЛОЖЕНИЯ, €</label>
+            <div class="offer-input-wrap"><span>€</span><input type="number" id="market-offer-input" min="0" step="10000" inputmode="numeric"></div>
+            <div class="transfer-button-row">
+              <button id="market-send-offer" class="primary">ОТПРАВИТЬ ПРЕДЛОЖЕНИЕ <span>↗</span></button>
+              <button id="market-complete-signing" class="primary" hidden>ПОДПИСАТЬ ИГРОКА <span>✓</span></button>
+              <button id="market-accept-counter" class="primary" hidden>ПРИНЯТЬ ВСТРЕЧНУЮ ЦЕНУ <span>↗</span></button>
+              <button id="market-list-player" class="primary" hidden>ВЫСТАВИТЬ НА ТРАНСФЕР <span>↗</span></button>
+              <button id="market-confirm-sale" class="primary" hidden>ПРИНЯТЬ ПРЕДЛОЖЕНИЕ <span>↗</span></button>
+            </div>
+            <button id="market-shortlist-toggle" class="transfer-secondary">☆ ДОБАВИТЬ В НАБЛЮДЕНИЕ</button>
+            <p id="market-feedback" class="transfer-feedback">Выбери футболиста и сделай клубу предложение.</p>
+          </div>
+        </aside>
+      </div>
+      <p class="transfer-disclaimer">ВРЕМЕННАЯ БАЗА / Реальных футболистов пока нет. Кандидаты обозначены номерами — позже добавим твои клубы и составы.</p>
     </section>
     <section id="standings" class="screen panel-screen">
       <div class="page-head compact"><p class="eyebrow">КАРЬЕРА ТРЕНЕРА</p><h2>ТУРНИРНАЯ ТАБЛИЦА</h2><p id="standings-league-name"></p></div>
