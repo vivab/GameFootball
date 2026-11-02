@@ -133,7 +133,7 @@ export function sellPlayer(w,playerId){
  const m=ensureManagement(w),index=m.squad.findIndex(p=>p.id===playerId);
  if(index<0)return {ok:false,message:"Игрок отсутствует в заявке."};
  if(m.squad.length<=11)return {ok:false,message:"Для симуляции необходимо минимум 11 футболистов."};
- const p=m.squad[index],fee=p.fee?Math.round(p.fee*.65):Math.round(p.rating*p.rating*50);
+ const p=m.squad[index],fee=m.listings?.[playerId]?.amount??(p.fee?Math.round(p.fee*.65):Math.round(p.rating*p.rating*50));
  m.squad.splice(index,1);m.balance+=fee;delete m.listings[playerId];
  m.transferHistory.unshift("Продажа: "+p.name+" +"+fee.toLocaleString("ru-RU")+" €");
  return {ok:true,player:p,fee};
