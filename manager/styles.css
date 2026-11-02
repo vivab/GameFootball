@@ -127,3 +127,76 @@
 .catalog-error{padding:15px;background:#532d24;border:1px solid #c07c68;color:#ffe3d8;border-radius:8px}
 @media(max-width:850px){.world-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.world-layout{grid-template-columns:1fr}.world-clubs-list{max-height:43dvh}.world-roster-list{max-height:45dvh}.world-club-details{padding:12px}}
 @media(max-height:460px) and (orientation:landscape){.world-filters{grid-template-columns:repeat(4,minmax(0,1fr))}.world-layout{grid-template-columns:minmax(0,1fr) minmax(230px,.85fr)}.world-clubs-list{max-height:48dvh}.world-roster-list{max-height:35dvh}.world-screen .page-head h2{font-size:24px}.world-filters input,.world-filters select{padding:7px}.world-clubs-panel,.world-club-details{padding:10px}.world-filters{margin-bottom:8px}}
+
+/* European sandbox (no real clubs/athletes), decision-only footballer career. */
+.choice-grid:not(.three){grid-template-columns:repeat(2,minmax(0,1fr))}
+.world-create-panel{padding:14px 18px;display:grid;gap:7px;margin-bottom:14px;background:#102b1ce0;border:1px solid #a4d6a354;border-radius:10px}
+.world-create-panel p{margin:0 0 6px}
+.world-create-panel select{border:1px solid #93be9b70;background:#102518;color:#edfced;border-radius:7px;padding:12px}
+.europe-leagues-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;max-height:62dvh;overflow-y:auto}
+.europe-league-card{display:grid;gap:8px;text-align:left;padding:15px;background:linear-gradient(120deg,#1d4a30,#0f3020);border:1px solid #8ac59c6d;border-radius:12px}
+.europe-league-card strong{font-size:17px}.europe-league-card small{color:#c0dac6;font-size:11px}
+.europe-league-card span{font-size:10px;color:#9ef0b9;font-weight:900}
+.world-screen .world-filters{grid-template-columns:1fr 2fr;max-width:740px}
+.coach-finance{margin-top:14px;border:1px solid #a4bf9a48;padding:11px 13px;border-radius:8px;background:#123923d9;color:#dcefc9;font-size:12px}
+.career-actions{flex-wrap:wrap}
+.career-actions button{min-width:135px}
+.management-top{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;margin:10px 0 22px;padding:13px 16px;border:1px solid #91d3a05f;border-radius:9px;background:#153a27}
+.management-top strong{font-size:clamp(15px,2.5vw,24px);color:#d0ffd8}
+.management-top small{display:block;color:#acccb9;font-size:10px;letter-spacing:1px}
+.management-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(195px,1fr));gap:10px;max-height:420px;overflow:auto;align-content:start;padding-bottom:8px}
+.management-item{border:1px solid #ffffff35;border-radius:9px;background:#183627;padding:13px;display:grid;gap:7px;align-content:start}
+.management-item strong{font-size:15px}.management-details{font-size:11px;color:#b6cfbc}
+.management-item b{font-size:15px;color:#e6ffda}
+.management-item button,.stadium-upgrade button{background:#2b8048;border:1px solid #6bc58c;border-radius:7px;padding:9px;color:#f4fff0;font-weight:800;font-size:11px}
+.management-item button.market-sell{background:#65452b;border-color:#ae8c69}
+.management-item button:disabled,.stadium-upgrade button:disabled{opacity:.45;cursor:default}
+.mini-heading{font-size:14px;letter-spacing:1px;margin:16px 0 10px}
+.standings-wrapper{overflow:auto;max-height:60dvh;border:1px solid #608c6c6b;border-radius:10px}
+.standings-table{border-collapse:collapse;width:100%;min-width:560px;font-size:13px}
+.standings-table th{position:sticky;top:0;background:#153721;color:#c7edc9;font-size:10px;letter-spacing:.6px;padding:12px 8px}
+.standings-table td{padding:10px 8px;border-top:1px solid #ffffff19;text-align:center}
+.standings-table th:nth-child(2),.standings-table td:nth-child(2){text-align:left}
+.standings-table tbody tr:nth-child(odd){background:#ffffff07}
+.standings-table tbody tr.our-club-row{background:#2b7240a3;font-weight:900}
+.stadium-layout{display:grid;grid-template-columns:minmax(310px,1.25fr) minmax(280px,1fr);align-items:start;gap:20px}
+.stadium-preview{position:relative;min-height:380px;display:grid;grid-template-columns:1fr 3fr 1fr;grid-template-rows:1fr 3fr 1fr;gap:5px;background:radial-gradient(circle,#233d2b,#0d2116);border:1px solid #8bba9379;border-radius:14px;padding:12px}
+.stadium-center{grid-column:2;grid-row:2;background:repeating-linear-gradient(90deg,#1d7332 0 33px,#247d3b 33px 66px);border:3px solid #eef6d7;position:relative;display:grid;place-items:center;overflow:hidden}
+.stadium-center:before{content:"";position:absolute;inset:20px;border:1px solid #e0ffda70}
+.stadium-center:after{content:"";position:absolute;width:2px;background:#edffe0;top:0;bottom:0;left:50%}
+.stadium-center span{position:relative;background:#04220fa0;padding:6px;border-radius:5px;z-index:2;color:#f5ffed;font-size:10px;font-weight:900;text-align:center}
+.stadium-circle{position:absolute;width:65px;height:65px;border:2px solid #efffee9e;border-radius:50%;z-index:1}
+.stand-block{background:repeating-linear-gradient(45deg,#445767 0 12px,#798995 12px 17px,#2b4653 17px 23px);border:3px solid #a6b3b7;box-shadow:inset 0 0 25px #000b;color:#fff;font-size:11px;font-weight:850;text-shadow:0 2px 3px #000;text-align:center;display:grid;place-items:center;padding:8px;border-radius:5px}
+.stand-north{grid-column:2;grid-row:1}.stand-south{grid-column:2;grid-row:3}.stand-west{grid-column:1;grid-row:2}.stand-east{grid-column:3;grid-row:2}
+.stadium-upgrades{display:grid;gap:9px}.stadium-upgrade{border:1px solid #ffffff2b;border-radius:9px;background:#1c3627;padding:11px;display:grid;gap:6px}
+.stadium-upgrade strong{font-size:13px}
+.decision-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:12px}
+.decision-options .decision-option{min-height:66px;background:#193e2b;border:1px solid #99d8a87c;border-radius:9px;display:grid;gap:5px;text-align:left;align-content:center;padding:9px}
+.decision-option strong{font-size:clamp(11px,1.2vw,14px)}.decision-option small{font-size:clamp(9px,1vw,11px);color:#c1d8c5;line-height:1.25}
+.decision-options .decision-option:hover{background:#2b7844}
+.decision-footer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:9px}
+.decision-footer button{min-height:37px;background:#31513e;border:1px solid #80a88a;border-radius:7px;font-size:11px;font-weight:800}
+.moment-card{width:min(670px,98%);padding:clamp(10px,2vw,22px);max-height:100%;overflow-y:auto}
+.moment-card h3{font-size:clamp(19px,2.5vw,30px)}
+.moment-card .moment-last-result{margin:0;min-height:0}
+.moment-overlay{padding:8px}
+.match-screen.player-highlights .match-grid{grid-template-columns:minmax(0,1fr)}
+.match-screen.player-highlights .match-pitch{position:relative;width:100%;max-width:1200px;margin:auto}
+.match-screen.player-highlights #player-match-panel{display:flex;flex-wrap:wrap;gap:8px 15px;align-items:center;padding:10px 14px;max-width:1200px;margin:auto}
+.match-screen.player-highlights #player-match-panel p,.match-screen.player-highlights #player-match-panel label{margin:0}
+.match-screen.player-highlights #player-match-panel #player-match-events{flex-basis:100%;max-height:65px}
+.match-screen.player-highlights #player-match-panel .match-help{font-size:10px}
+.match-screen.player-highlights #player-match-panel select{width:90px}
+#moment-info{top:8px;left:8px}
+@media(max-width:800px){.stadium-layout{grid-template-columns:1fr}.stadium-preview{min-height:250px}.world-screen .world-filters{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-height:480px) and (orientation:landscape){
+ .match-top{margin-bottom:4px}.match-screen.player-highlights #player-match-panel{padding:5px 8px}
+ .match-screen.player-highlights #player-match-panel #player-match-events,.match-screen.player-highlights #player-match-panel .match-help{display:none}
+ .moment-card{width:min(850px,98%);padding:9px 15px}
+ .moment-card h3{font-size:20px;margin:3px 0}.moment-card p{margin:3px 0;font-size:10px}
+ .decision-options{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-top:5px}
+ .decision-options .decision-option{min-height:46px;padding:5px 8px}
+ .decision-option strong{font-size:11px}.decision-option small{font-size:9px}
+ .decision-footer{margin-top:5px}.decision-footer button{min-height:28px}
+ .stadium-preview{min-height:180px}.stand-block{font-size:9px;padding:3px}
+}
