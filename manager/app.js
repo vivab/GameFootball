@@ -302,25 +302,13 @@ function move(p,x,y,dt,speed){
 function step(dt){
  if(!match)return;
  const m=match;m.elapsed=Math.min(5400,m.elapsed+dt*52);
- if(m.playerMode){
-  const p=m.home[m.controlIdx],profile=ensurePlayerProfile(active());
-  const pressed=k=>movementKeys.has(k);
-  let dx=joystick.x+(pressed("d")||pressed("arrowright")?1:0)-(pressed("a")||pressed("arrowleft")?1:0);
-  let dy=joystick.y+(pressed("s")||pressed("arrowdown")?1:0)-(pressed("w")||pressed("arrowup")?1:0);
-  const magnitude=Math.hypot(dx,dy);
-  if(magnitude>.05){
-   dx/=Math.max(1,magnitude);dy/=Math.max(1,magnitude);
-   const speed=93+(profile.skills.pace*.62)*(profile.fitness/100);
-   p.x=bound(p.x+dx*dt*speed,34,966);p.y=bound(p.y+dy*dt*speed,34,556);
-  }
- }
  // Tactical rearrangement is continuous, never a teleport.
  for(const [team,list] of [[0,m.home],[1,m.away]]){
   for(let i=0;i<list.length;i++){
-   const p=list[i];if(m.playerMode&&team===0&&i===m.controlIdx)continue;let gx=p.homeX,gy=p.homeY;
+   const p=list[i];let gx=p.homeX,gy=p.homeY;
    if(m.owner&&m.owner.team!==team&&i>0){
     const d=Math.hypot(p.x-m.ball.x,p.y-m.ball.y);
-    const available=list.slice(1).filter(q=>!(m.playerMode&&team===0&&q===m.home[m.controlIdx]));
+    const available=list.slice(1);
     const nearest=available.reduce((a,b)=>Math.hypot(a.x-m.ball.x,a.y-m.ball.y)<Math.hypot(b.x-m.ball.x,b.y-m.ball.y)?a:b);
     if(p===nearest){gx=m.ball.x;gy=m.ball.y}
     else{gx+=(m.ball.x-500)*.08;gy+=(m.ball.y-295)*.09}
@@ -373,8 +361,7 @@ function step(dt){
  if(m.eventsTimer<=0){m.eventsTimer=4+Math.random()*9;incident()}
  if(m.elapsed>=2700&&!m.halftime){m.halftime=true;m.paused=true;
  $("match-pause").textContent="НАЧАТЬ 2-Й ТАЙМ";
- $("player-match-pause").textContent="НАЧАТЬ 2-Й ТАЙМ";
- addEvent(m.playerMode?"Перерыв! Отдохни перед вторым таймом.":"Перерыв. Матч остановлен для тренерских решений.")}
+ addEvent("Перерыв. Можно изменить тактику перед вторым таймом.")}
  if(m.elapsed>=5400){addEvent("Финальный свисток.");finishMatch(true);return}
  updateScore();
 }
@@ -399,7 +386,7 @@ function performAction(){
  const candidates=players.map((p,i)=>{const distance=Math.hypot(p.x-ballCarrier.x,p.y-ballCarrier.y);let score=(team===0?p.x:-p.x)+Math.random()*180;
   if(passing==="short")score-=distance*1.7;
   if(passing==="long")score+=distance*.55;
-  if(m.playerMode&&team===0&&i===m.controlIdx)score+=160;
+  
   return {p,i,score};}).filter(x=>x.i>0&&x.i!==idx);
  candidates.sort((a,b)=>b.score-a.score);
  m.owner={team,idx:candidates[Math.floor(Math.random()*Math.min(4,candidates.length))].i};
@@ -454,25 +441,8 @@ function drawMatch(){
  for(const x of [L+95,R-95]){
   ctx.beginPath();ctx.fillStyle="#f3fff3";ctx.arc(x,295,3,0,Math.PI*2);ctx.fill();
  }
- const arrow=false,control=m.home[m.controlIdx];
- if(arrow){
-  const aim={x:1,y:0},distance=75;
-  ctx.strokeStyle="#ffe16d";ctx.fillStyle="#ffe16d";ctx.lineWidth=4;
-  ctx.beginPath();ctx.moveTo(control.x,control.y);ctx.lineTo(control.x+aim.x*distance,control.y+aim.y*distance);ctx.stroke();
-  const ex=control.x+aim.x*distance,ey=control.y+aim.y*distance;
-  ctx.beginPath();ctx.moveTo(ex,ey);
-  ctx.lineTo(ex-aim.x*11-aim.y*7,ey-aim.y*11+aim.x*7);
-  ctx.lineTo(ex-aim.x*11+aim.y*7,ey-aim.y*11-aim.x*7);ctx.closePath();ctx.fill();
- }
  for(const [team,list] of [[0,m.home],[1,m.away]]){
   for(const p of list){
-   const isUser=m.playerMode&&team===0&&p===control;
-   if(isUser){
-    ctx.beginPath();ctx.strokeStyle="#ffe16d";ctx.lineWidth=3.5;
-    ctx.arc(p.x,p.y,21,0,Math.PI*2);ctx.stroke();
-    ctx.fillStyle="#ffe16d";ctx.beginPath();ctx.moveTo(p.x-7,p.y-29);
-    ctx.lineTo(p.x+7,p.y-29);ctx.lineTo(p.x,p.y-21);ctx.closePath();ctx.fill();
-   }
    ctx.save();ctx.translate(p.x,p.y);
    ctx.fillStyle="#0006";ctx.beginPath();ctx.ellipse(0,14,11,4,0,0,Math.PI*2);ctx.fill();
    const kit=team===0?"#e9efff":"#bc3549";
