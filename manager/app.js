@@ -469,7 +469,7 @@ function finishMatch(record){
 }
 function frame(now){
  const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));lastFrame=now;
- if(match&&!match.paused&&screen==="match"){step(dt*match.speed);if(match)drawMatch()}
+ if(match&&!match.paused&&screen==="match"){const repeat=match.speed||1;for(let i=0;i<repeat&&match&&!match.paused;i++)step(dt);if(match)drawMatch()}
  else if(match&&screen==="match")drawMatch();
  raf=requestAnimationFrame(frame);
 }
