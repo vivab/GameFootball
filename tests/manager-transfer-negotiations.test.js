@@ -72,3 +72,20 @@ test("offers cannot spend more cash than the manager has",()=>{
  assert.equal(submitTransferOffer(w,p.id,p.fee).ok,false);
  assert.equal(finalizeTransfer(w,p.id).ok,false);
 });
+
+test("shortlisted scout prospects do not vanish when a new matchday begins",()=>{
+ const w=create(),m=ensureManagement(w),candidate=getMarketCandidates(w)[5];
+ toggleShortlist(w,candidate.id);
+ m.matchday=4;
+ assert.ok(getMarketCandidates(w).some(p=>p.id===candidate.id));
+ assert.ok(m.shortlist.includes(candidate.id));
+});
+test("sale pays the exact price shown when transfer-listed",()=>{
+ const w=create(),p=ensureManagement(w).squad[12];
+ const offered=listSquadPlayer(w,p.id);
+ const balance=ensureManagement(w).balance;
+ const sold=acceptSaleOffer(w,p.id);
+ assert.equal(sold.ok,true);
+ assert.equal(sold.fee,offered.amount);
+ assert.equal(ensureManagement(w).balance,balance+offered.amount);
+});
