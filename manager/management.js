@@ -102,14 +102,17 @@ export function finishCoachMatch(w,homeGoals,awayGoals,opponentName){
 const POSITIONS=["GK","CB","CM","ST"];
 export function getMarketCandidates(w){
  const m=ensureManagement(w);
- // Every candidate is deliberately anonymous: the user will provide real or invented rosters later.
- return Array.from({length:8},(_,i)=>{
-  const rating=57+(i*7+(m.matchday||0)*3)%26;
-  const position=POSITIONS[i%POSITIONS.length];
-  const fee=round((rating*rating*75)+i*42000);
-  return {id:"anon-"+m.matchday+"-"+i,name:"Кандидат №"+String(i+1).padStart(2,"0"),
-   position,rating,fee,salary:Math.round(fee*.025),placeholder:true};
- });
+ // Stable scouting candidates: prospects remain available across matches and in the shortlist.
+ if(!Array.isArray(m.scoutingPool)||!m.scoutingPool.length){
+  m.scoutingPool=Array.from({length:16},(_,i)=>{
+   const rating=57+(i*7+Math.floor(i/4)*2)%27;
+   const position=POSITIONS[i%POSITIONS.length];
+   const fee=round(rating*rating*75+i*23500);
+   return {id:"scout-"+(i+1),name:"Кандидат №"+String(i+1).padStart(2,"0"),
+    position,rating,fee,salary:Math.round(fee*.025),placeholder:true};
+  });
+ }
+ return m.scoutingPool;
 }
 export function buyCandidate(w,idValue,agreedPrice=null){
  const m=ensureManagement(w),candidate=getMarketCandidates(w).find(c=>c.id===idValue);
